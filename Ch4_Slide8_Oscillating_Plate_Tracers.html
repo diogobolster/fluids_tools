@@ -1,0 +1,291 @@
+<title>Oscillating Plate Tracers</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,500;0,600;1,500&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#F6F5F0; --panel:#FFFFFF; --ink:#1B2430; --ink-2:#5A6270; --line:#D9D7CF; --grid:#ECEAE3;
+  --stream:#2F6DB5; --path:#C8552E; --streak:#2E8B6E; --steady:#8A8F98; --plate:#3A3F47; --vec:#B9C4D4;
+  --focus:#2F6DB5;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141920; --panel:#1C232C; --ink:#E8E6E1; --ink-2:#A2A9B4; --line:#333B46; --grid:#242C36;
+    --stream:#6FA3E6; --path:#EE8A63; --streak:#5DC29E; --steady:#8E96A3; --plate:#C9CED6; --vec:#3B4757;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141920; --panel:#1C232C; --ink:#E8E6E1; --ink-2:#A2A9B4; --line:#333B46; --grid:#242C36;
+  --stream:#6FA3E6; --path:#EE8A63; --streak:#5DC29E; --steady:#8E96A3; --plate:#C9CED6; --vec:#3B4757;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Source Sans 3",system-ui,sans-serif;font-size:15px;line-height:1.45}
+.wrap{max-width:1180px;margin:0 auto;padding-block:20px 40px;padding-inline:16px}
+h1{font-family:"Source Serif 4",Georgia,serif;font-weight:600;font-size:1.7rem;margin:0 0 4px;text-wrap:balance}
+h2{font-family:"Source Serif 4",Georgia,serif;font-weight:600;font-size:1.1rem;margin:0 0 8px}
+.sub{color:var(--ink-2);margin:0 0 16px;max-width:70ch}
+.eyebrow{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);font-weight:600}
+.given{display:flex;gap:18px;flex-wrap:wrap;align-items:baseline;margin:0 0 18px;font-family:"JetBrains Mono",monospace;font-size:.95rem}
+.given .k{color:var(--ink-2);font-family:"Source Sans 3",sans-serif;font-size:.8rem;text-transform:uppercase;letter-spacing:.06em}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;align-items:start}
+@media (max-width:860px){.layout{grid-template-columns:1fr}}
+.plot{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px;position:relative}
+canvas{display:block;width:100%;height:auto;touch-action:none;cursor:crosshair}
+.legend{display:flex;gap:14px;flex-wrap:wrap;padding:8px 4px 0;font-size:.85rem;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:22px;height:0;border-top:3px solid}
+.sw.dash{border-top-style:dashed}
+.controls{display:flex;flex-direction:column;gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px}
+.row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:4px}
+label{font-weight:600;font-size:.9rem}
+.val{font-family:"JetBrains Mono",monospace;font-size:.85rem;color:var(--ink-2);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--stream);margin:2px 0 8px}
+input[type=range]:focus-visible,button:focus-visible,input[type=checkbox]:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+button{font:inherit;font-weight:600;padding:6px 12px;border-radius:4px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+button.primary{background:var(--stream);border-color:var(--stream);color:#fff}
+.chk{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:.92rem}
+.chk input{accent-color:var(--ink);width:15px;height:15px;margin:0}
+.chk .dot{width:10px;height:10px;border-radius:50%;flex:none}
+.seg{display:flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.seg button{flex:1;border:0;border-radius:0;background:transparent}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.hint{font-size:.82rem;color:var(--ink-2);margin:6px 0 0}
+.solutions{margin-top:22px;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.sol{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;border-top:3px solid var(--c)}
+.sol p{margin:6px 0;color:var(--ink-2);font-size:.9rem}
+.m{font-family:"Source Serif 4",Georgia,serif;font-style:italic;font-size:1.02rem;margin:8px 0;overflow-x:auto;white-space:nowrap}
+.m sup,.m sub{font-style:normal;font-size:.72em}
+.m .up{font-style:normal}
+.note{margin-top:18px;color:var(--ink-2);font-size:.9rem;max-width:80ch}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">CE 30460 · Chapter 4 · Example problem</div>
+  <h1>Flow above an oscillating plate with vertical blowing</h1>
+  <p class="sub">The plate at <i>y</i> = 0 slides back and forth; its motion diffuses upward and decays, while a uniform upward blowing carries fluid away from it. Drag the release point, scrub time, and compare the three tracer curves. Switch to the steady field to see them collapse onto one curve.</p>
+  <div class="given">
+    <span class="k">Given</span>
+    <span id="eqU">u = e<sup>−y</sup> cos(t − y)</span>
+    <span>v = 1</span>
+  </div>
+
+  <div class="layout">
+    <div class="plot">
+      <canvas id="cv" width="820" height="700" aria-label="Plot of streamlines, pathline and streakline above the oscillating plate"></canvas>
+      <div class="legend">
+        <span><i class="sw" style="border-color:var(--stream)"></i>streamlines at time t</span>
+        <span><i class="sw" style="border-color:var(--path)"></i>pathline (one particle)</span>
+        <span><i class="sw" style="border-color:var(--streak)"></i>streakline (dye line)</span>
+        <span><i class="sw dash" style="border-color:var(--steady)"></i>steady-field curve</span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="card">
+        <div class="eyebrow" style="margin-bottom:8px">Velocity field</div>
+        <div class="seg" role="group" aria-label="Field">
+          <button id="modeU" aria-pressed="true">Unsteady</button>
+          <button id="modeS" aria-pressed="false">Steady</button>
+        </div>
+        <p class="hint" id="modeHint">u = e<sup>−y</sup> cos(t − y), v = 1</p>
+      </div>
+
+      <div class="card">
+        <div class="row"><label for="t">Time t</label><span class="val" id="tv">0.00</span></div>
+        <input type="range" id="t" min="0" max="12.566" step="0.01" value="0">
+        <div class="btns">
+          <button class="primary" id="play">Play</button>
+          <button id="reset">Reset</button>
+        </div>
+        <p class="hint">Plate velocity u(0, t) = cos t. One cycle is 2π ≈ 6.28.</p>
+      </div>
+
+      <div class="card">
+        <div class="eyebrow" style="margin-bottom:8px">Release point (drag it on the plot)</div>
+        <div class="row"><label for="x0">x₀</label><span class="val" id="x0v">0.00</span></div>
+        <input type="range" id="x0" min="-2" max="3" step="0.01" value="0">
+        <div class="row"><label for="y0">y₀</label><span class="val" id="y0v">0.00</span></div>
+        <input type="range" id="y0" min="0" max="3" step="0.01" value="0">
+        <div class="row"><label for="t0">Release / injection start t₀</label><span class="val" id="t0v">0.00</span></div>
+        <input type="range" id="t0" min="0" max="12.566" step="0.01" value="0">
+      </div>
+
+      <div class="card">
+        <div class="eyebrow" style="margin-bottom:6px">Show</div>
+        <label class="chk"><input type="checkbox" id="cStream" checked><i class="dot" style="background:var(--stream)"></i>Streamlines (family + through point)</label>
+        <label class="chk"><input type="checkbox" id="cPath" checked><i class="dot" style="background:var(--path)"></i>Pathline of particle released at t₀</label>
+        <label class="chk"><input type="checkbox" id="cStreak" checked><i class="dot" style="background:var(--streak)"></i>Streakline, dye on since t₀</label>
+        <label class="chk"><input type="checkbox" id="cSteady" checked><i class="dot" style="background:var(--steady)"></i>Steady-field curve through point</label>
+        <label class="chk"><input type="checkbox" id="cVec" checked><i class="dot" style="background:var(--vec);border:1px solid var(--line)"></i>Velocity vectors</label>
+      </div>
+    </div>
+  </div>
+
+  <div class="solutions">
+    <div class="sol" style="--c:var(--stream)">
+      <h2>1 · Streamlines</h2>
+      <p>Freeze time. Tangent to velocity: <span class="m" style="display:inline;margin:0">dx/dy = u/v = e<sup>−y</sup> cos(t − y)</span>. Integrate in y with t a parameter.</p>
+      <div class="m">x(y) = x<sub>0</sub> + F(y<sub>0</sub>) − F(y),&nbsp; F(y) = ½ e<sup>−y</sup> [cos(t − y) + sin(t − y)]</div>
+      <p>A different picture at every instant. The family slides sideways as the plate reverses.</p>
+    </div>
+    <div class="sol" style="--c:var(--path)">
+      <h2>2 · Pathlines</h2>
+      <p>Follow one particle released at (x<sub>0</sub>, y<sub>0</sub>) at t<sub>0</sub>. From v = 1, y = y<sub>0</sub> + (t − t<sub>0</sub>), so t − y = t<sub>0</sub> − y<sub>0</sub> is constant along the path and dx/dt = e<sup>−y</sup> cos(t<sub>0</sub> − y<sub>0</sub>).</p>
+      <div class="m">x(t) = x<sub>0</sub> + e<sup>−y<sub>0</sub></sup> cos(t<sub>0</sub> − y<sub>0</sub>) [1 − e<sup>−(t − t<sub>0</sub>)</sup>]</div>
+      <p>Each particle keeps the phase it was born with; its sideways drift decays as it rises and saturates at x<sub>0</sub> + e<sup>−y<sub>0</sub></sup> cos(t<sub>0</sub> − y<sub>0</sub>).</p>
+    </div>
+    <div class="sol" style="--c:var(--streak)">
+      <h2>3 · Streaklines</h2>
+      <p>All particles that passed through (x<sub>0</sub>, y<sub>0</sub>) between t<sub>0</sub> and now, each at its current position. Parameterize by release time τ.</p>
+      <div class="m">y = y<sub>0</sub> + (t − τ),&nbsp; x = x<sub>0</sub> + e<sup>−y<sub>0</sub></sup> cos(τ − y<sub>0</sub>) [1 − e<sup>−(t − τ)</sup>],&nbsp; t<sub>0</sub> ≤ τ ≤ t</div>
+      <p>The cosine in τ makes the dye line wave: alternate releases were flung left and right by the plate.</p>
+    </div>
+    <div class="sol" style="--c:var(--steady)">
+      <h2>4 · Steady case</h2>
+      <p>Drop the t: u = e<sup>−y</sup> cos y, v = 1. All three curves coincide.</p>
+      <div class="m">x(y) = x<sub>0</sub> + G(y) − G(y<sub>0</sub>),&nbsp; G(y) = ½ e<sup>−y</sup> [sin y − cos y]</div>
+      <p>Same integral with t = 0 in the phase but no time dependence, so a particle that follows it, the instantaneous tangent curve, and the dye line are all the same curve.</p>
+    </div>
+  </div>
+  <p class="note">Item 5 on the slide (code) is the companion Jupyter notebook, which derives the same closed forms and checks them against a numerical integration of the particle ODEs.</p>
+</div>
+
+<script>
+(function(){
+  const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  const X0=-2.5,X1=3.5,Y0=-0.25,Y1=6.0;
+  const pad={l:52,r:16,t:16,b:44};
+  const sx=x=>pad.l+(x-X0)/(X1-X0)*(W-pad.l-pad.r);
+  const sy=y=>H-pad.b-(y-Y0)/(Y1-Y0)*(H-pad.t-pad.b);
+  const ix=px=>X0+(px-pad.l)/(W-pad.l-pad.r)*(X1-X0);
+  const iy=py=>Y0+(H-pad.b-py)/(H-pad.t-pad.b)*(Y1-Y0);
+
+  const S={t:0,x0:0,y0:0,t0:0,steady:false,playing:false};
+  const el=id=>document.getElementById(id);
+  const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+  // velocity field
+  const u=(x,y,t)=>S.steady?Math.exp(-y)*Math.cos(y):Math.exp(-y)*Math.cos(t-y);
+  // streamline integral: x(y)=x0 + F(y0) - F(y) with F = 1/2 e^-y [cos(t-y)+sin(t-y)] ; steady: x = x0 + G(y)-G(y0)
+  const F=(y,t)=>0.5*Math.exp(-y)*(Math.cos(t-y)+Math.sin(t-y));
+  const G=y=>0.5*Math.exp(-y)*(Math.sin(y)-Math.cos(y));
+  function streamX(y,x0,y0,t){return S.steady? x0+G(y)-G(y0) : x0+F(y0,t)-F(y,t);}
+  // particle released at (x0,y0) at t0, position at time t
+  function particle(x0,y0,t0,t){
+    const y=y0+(t-t0);
+    const x=S.steady? x0+G(y)-G(y0) : x0+Math.exp(-y0)*Math.cos(t0-y0)*(1-Math.exp(-(t-t0)));
+    return [x,y];
+  }
+
+  function line(pts,color,width,dash){
+    ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash(dash||[]);
+    pts.forEach((p,i)=>i?ctx.lineTo(sx(p[0]),sy(p[1])):ctx.moveTo(sx(p[0]),sy(p[1])));
+    ctx.stroke();ctx.setLineDash([]);
+  }
+  function dot(x,y,color,r){ctx.beginPath();ctx.arc(sx(x),sy(y),r,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();}
+  function arrow(x,y,dx,dy,color){
+    const ax=sx(x),ay=sy(y),bx=sx(x+dx),by=sy(y+dy);
+    const L=Math.hypot(bx-ax,by-ay); if(L<1.5)return;
+    ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();
+    const a=Math.atan2(by-ay,bx-ax),h=Math.min(6,L*0.5);
+    ctx.beginPath();ctx.moveTo(bx,by);ctx.lineTo(bx-h*Math.cos(a-0.45),by-h*Math.sin(a-0.45));ctx.lineTo(bx-h*Math.cos(a+0.45),by-h*Math.sin(a+0.45));ctx.closePath();ctx.fill();
+  }
+
+  function draw(){
+    const t=S.t,x0=S.x0,y0=S.y0,t0=S.t0;
+    const ink=css('--ink'),ink2=css('--ink-2'),grid=css('--grid'),lineC=css('--line');
+    ctx.clearRect(0,0,W,H);
+    // grid
+    ctx.font='12px "JetBrains Mono",monospace';ctx.fillStyle=ink2;ctx.textAlign='center';ctx.textBaseline='top';
+    for(let x=Math.ceil(X0);x<=X1;x++){ctx.strokeStyle=grid;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(sx(x),sy(Y0));ctx.lineTo(sx(x),sy(Y1));ctx.stroke();ctx.fillText(x,sx(x),H-pad.b+8);}
+    ctx.textAlign='right';ctx.textBaseline='middle';
+    for(let y=0;y<=Y1;y++){ctx.strokeStyle=grid;ctx.beginPath();ctx.moveTo(sx(X0),sy(y));ctx.lineTo(sx(X1),sy(y));ctx.stroke();ctx.fillText(y,pad.l-8,sy(y));}
+    ctx.fillStyle=ink;ctx.font='13px "Source Sans 3",sans-serif';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('x',(pad.l+W-pad.r)/2,H-pad.b+24);
+    ctx.save();ctx.translate(14,(pad.t+H-pad.b)/2);ctx.rotate(-Math.PI/2);ctx.fillText('y',0,0);ctx.restore();
+
+    // velocity vectors
+    if(el('cVec').checked){
+      const vc=css('--vec'),scale=0.42;
+      for(let x=X0+0.25;x<X1;x+=0.5)for(let y=0;y<=5.5;y+=0.5){arrow(x,y,scale*u(x,y,t),scale*1,vc);}
+    }
+    // plate
+    ctx.fillStyle=css('--plate');ctx.fillRect(sx(X0),sy(0),sx(X1)-sx(X0),3);
+    const up=S.steady?1:Math.cos(t);
+    arrow(0.0,-0.12,0.9*up,0,css('--plate'));
+    ctx.fillStyle=ink2;ctx.font='12px "Source Sans 3",sans-serif';ctx.textAlign='left';ctx.textBaseline='top';
+    ctx.fillText('plate, u(0,t) = '+(S.steady?'1':'cos t = '+up.toFixed(2)),sx(X0)+6,sy(0)+6);
+
+    // streamlines
+    if(el('cStream').checked){
+      const c=css('--stream');
+      for(let xs=-2.5;xs<=3.5;xs+=0.5){
+        const pts=[];for(let y=0;y<=Y1;y+=0.05)pts.push([streamX(y,xs,0,t),y]);
+        line(pts,c,1,[]);ctx.globalAlpha=1;
+      }
+      const pts=[];for(let y=0;y<=Y1;y+=0.05)pts.push([streamX(y,x0,y0,t),y]);
+      line(pts,c,2.5,[]);
+    }
+    // steady curve through point
+    if(el('cSteady').checked&&!S.steady){
+      const pts=[];for(let y=0;y<=Y1;y+=0.05)pts.push([x0+G(y)-G(y0),y]);
+      line(pts,css('--steady'),1.8,[7,5]);
+    }
+    // streakline
+    if(el('cStreak').checked&&t>t0){
+      const pts=[];const n=Math.max(2,Math.ceil((t-t0)/0.01));
+      for(let i=0;i<=n;i++){const tau=t0+(t-t0)*i/n;pts.push(particle(x0,y0,tau,t));}
+      line(pts,css('--streak'),2.5,[]);
+      // dye blobs every 0.25 s of release
+      for(let tau=t0;tau<=t;tau+=0.25){const p=particle(x0,y0,tau,t);dot(p[0],p[1],css('--streak'),2.2);}
+    }
+    // pathline
+    if(el('cPath').checked&&t>t0){
+      const pts=[];const n=Math.max(2,Math.ceil((t-t0)/0.01));
+      for(let i=0;i<=n;i++){pts.push(particle(x0,y0,t0,t0+(t-t0)*i/n));}
+      line(pts,css('--path'),2.5,[]);
+      const p=particle(x0,y0,t0,t);dot(p[0],p[1],css('--path'),6);
+      ctx.strokeStyle=css('--panel');ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(sx(p[0]),sy(p[1]),6,0,Math.PI*2);ctx.stroke();
+    }
+    // release point
+    ctx.beginPath();ctx.arc(sx(x0),sy(y0),7,0,Math.PI*2);ctx.fillStyle=css('--panel');ctx.fill();ctx.strokeStyle=ink;ctx.lineWidth=2;ctx.stroke();
+    ctx.beginPath();ctx.arc(sx(x0),sy(y0),2.5,0,Math.PI*2);ctx.fillStyle=ink;ctx.fill();
+    // time stamp
+    ctx.font='500 14px "JetBrains Mono",monospace';ctx.textAlign='right';ctx.textBaseline='top';
+    const label='t = '+t.toFixed(2)+(S.steady?'  (steady field)':'');const tw=ctx.measureText(label).width;
+    ctx.fillStyle=css('--panel');ctx.fillRect(W-pad.r-14-tw,pad.t,tw+16,24);ctx.strokeStyle=lineC;ctx.strokeRect(W-pad.r-14-tw,pad.t,tw+16,24);
+    ctx.fillStyle=ink;
+    ctx.fillText('t = '+t.toFixed(2)+(S.steady?'  (steady field)':''),W-pad.r-6,pad.t+4);
+  }
+
+  // controls
+  const ranges={t:'tv',x0:'x0v',y0:'y0v',t0:'t0v'};
+  for(const k in ranges){el(k).addEventListener('input',()=>{S[k]=parseFloat(el(k).value);sync();draw();});}
+  ['cStream','cPath','cStreak','cSteady','cVec'].forEach(id=>el(id).addEventListener('change',draw));
+  function sync(){for(const k in ranges){el(k).value=S[k];el(ranges[k]).textContent=S[k].toFixed(2);}
+    if(S.t0>S.t){/* allow, nothing drawn until t passes t0 */}}
+  el('modeU').onclick=()=>setMode(false);el('modeS').onclick=()=>setMode(true);
+  function setMode(s){S.steady=s;el('modeU').setAttribute('aria-pressed',!s);el('modeS').setAttribute('aria-pressed',s);
+    el('modeHint').innerHTML=s?'u = e<sup>−y</sup> cos(y), v = 1':'u = e<sup>−y</sup> cos(t − y), v = 1';
+    el('eqU').innerHTML=s?'u = e<sup>−y</sup> cos(−y) = e<sup>−y</sup> cos y':'u = e<sup>−y</sup> cos(t − y)';draw();}
+  let raf=null,last=null;
+  function step(ts){if(!S.playing)return;if(last!==null){S.t+=Math.min(0.05,(ts-last)/1000)*1.0;if(S.t>12.566){S.t=0;}sync();draw();}last=ts;raf=requestAnimationFrame(step);}
+  el('play').onclick=()=>{S.playing=!S.playing;el('play').textContent=S.playing?'Pause':'Play';last=null;if(S.playing)raf=requestAnimationFrame(step);};
+  el('reset').onclick=()=>{S.playing=false;el('play').textContent='Play';S.t=0;S.t0=0;sync();draw();};
+
+  // drag release point
+  let dragging=false;
+  function pos(e){const r=cv.getBoundingClientRect();return [ (e.clientX-r.left)*W/r.width,(e.clientY-r.top)*H/r.height];}
+  cv.addEventListener('pointerdown',e=>{const [px,py]=pos(e);dragging=true;cv.setPointerCapture(e.pointerId);move(px,py);});
+  cv.addEventListener('pointermove',e=>{if(!dragging)return;const [px,py]=pos(e);move(px,py);});
+  cv.addEventListener('pointerup',()=>dragging=false);cv.addEventListener('pointercancel',()=>dragging=false);
+  function move(px,py){S.x0=Math.min(3,Math.max(-2,ix(px)));S.y0=Math.min(3,Math.max(0,iy(py)));sync();draw();}
+
+  if(window.matchMedia){window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',draw);}
+  new MutationObserver(draw).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+  document.fonts&&document.fonts.ready.then(draw);
+  S.t=1.5;sync();draw();
+})();
+</script>
