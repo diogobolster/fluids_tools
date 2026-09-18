@@ -1,0 +1,532 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Reynolds Transport Lab</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,500;0,600;1,500&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#F6F5F0; --panel:#FFFFFF; --ink:#1B2430; --ink-2:#5A6270; --line:#D9D7CF; --grid:#ECEAE3;
+  --in:#2F6DB5; --out:#C8552E; --cv:#2E8B6E; --sys:#4A5260; --conv:#7A5BB5; --slug:#D49A1E;
+  --fluid:#E6EEF6; --plate:#3A3F47; --vec:#AEBBCD; --focus:#2F6DB5;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141920; --panel:#1C232C; --ink:#E8E6E1; --ink-2:#A2A9B4; --line:#333B46; --grid:#242C36;
+    --in:#6FA3E6; --out:#EE8A63; --cv:#5DC29E; --sys:#B8BFCA; --conv:#A98BE0; --slug:#E6B84D;
+    --fluid:#1F2A37; --plate:#C9CED6; --vec:#4A586B;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141920; --panel:#1C232C; --ink:#E8E6E1; --ink-2:#A2A9B4; --line:#333B46; --grid:#242C36;
+  --in:#6FA3E6; --out:#EE8A63; --cv:#5DC29E; --sys:#B8BFCA; --conv:#A98BE0; --slug:#E6B84D;
+  --fluid:#1F2A37; --plate:#C9CED6; --vec:#4A586B;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Source Sans 3",system-ui,sans-serif;font-size:15px;line-height:1.45}
+.wrap{max-width:1180px;margin:0 auto;padding-block:20px 40px;padding-inline:16px}
+h1{font-family:"Source Serif 4",Georgia,serif;font-weight:600;font-size:1.7rem;margin:0 0 4px;text-wrap:balance}
+h2{font-family:"Source Serif 4",Georgia,serif;font-weight:600;font-size:1.1rem;margin:0 0 8px}
+.sub{color:var(--ink-2);margin:0 0 16px;max-width:72ch}
+.eyebrow{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);font-weight:600}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin:0 0 16px}
+.tabs button{font:inherit;font-weight:600;padding:9px 14px;border:0;border-bottom:3px solid transparent;background:transparent;color:var(--ink-2);cursor:pointer;border-radius:0}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;align-items:start}
+@media (max-width:860px){.layout{grid-template-columns:1fr}}
+.main{display:flex;flex-direction:column;gap:14px;min-width:0}
+.plot{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px}
+canvas{display:block;width:100%;touch-action:none}
+.legend{display:flex;gap:14px;flex-wrap:wrap;padding:8px 4px 0;font-size:.85rem;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:16px;height:12px;border-radius:2px;flex:none}
+.sw.ln{height:0;border-top:3px solid;border-radius:0;width:22px}
+.sw.dash{border-top-style:dashed}
+.controls{display:flex;flex-direction:column;gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px}
+.row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:4px}
+label{font-weight:600;font-size:.9rem}
+.val{font-family:"JetBrains Mono",monospace;font-size:.85rem;color:var(--ink-2);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--in);margin:2px 0 8px}
+input[type=range]:focus-visible,button:focus-visible,input[type=checkbox]:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+button{font:inherit;font-weight:600;padding:6px 12px;border-radius:4px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+button.primary{background:var(--in);border-color:var(--in);color:#fff}
+.seg{display:flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.seg button{flex:1 1 auto;border:0;border-radius:0;background:transparent;font-size:.88rem;padding:6px 8px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.hint{font-size:.82rem;color:var(--ink-2);margin:6px 0 0}
+.m{font-family:"Source Serif 4",Georgia,serif;font-style:italic;font-size:1.02rem}
+.m sup,.m sub{font-style:normal;font-size:.72em}
+.m .up{font-style:normal}
+.eq{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline;font-size:1.12rem;margin:2px 0 12px;overflow-x:auto}
+.t-sys{color:var(--sys)} .t-cv{color:var(--cv)} .t-out{color:var(--out)} .t-in{color:var(--in)} .t-conv{color:var(--conv)}
+.bars{display:flex;flex-direction:column;gap:8px}
+.bar-row{display:grid;grid-template-columns:118px minmax(0,1fr) 112px;gap:10px;align-items:center}
+@media (max-width:520px){.bar-row{grid-template-columns:86px minmax(0,1fr) 84px;gap:6px}}
+.bar-row .bl small{display:block;font-family:"Source Sans 3",sans-serif;font-style:normal;font-size:.72rem;color:var(--ink-2)}
+.track{position:relative;height:18px;background:var(--grid);border-radius:2px}
+.track .zero{position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--ink-2)}
+.track .fill{position:absolute;top:2px;bottom:2px;background:var(--c);border-radius:1px}
+.track .tick{position:absolute;top:-4px;bottom:-4px;width:3px;margin-left:-1.5px;background:var(--ink);border-radius:1px}
+.bv{text-align:right;line-height:1.2}
+.bv b{display:block;font-family:"JetBrains Mono",monospace;font-weight:500;font-size:.9rem;font-variant-numeric:tabular-nums}
+.bv small{font-family:"JetBrains Mono",monospace;font-size:.72rem;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.units{font-size:.82rem;color:var(--ink-2);margin:10px 0 0}
+.notice{border-left:3px solid var(--ink);padding:2px 0 2px 12px;margin:0;max-width:75ch}
+.notice .eyebrow{display:block;margin-bottom:2px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0;font-size:.9rem}
+.kv dt{color:var(--ink-2)} .kv dd{margin:0;text-align:right}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+th,td{padding:5px 4px;border-bottom:1px solid var(--line);text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);font-weight:600}
+tr.selrow td{background:var(--grid)}
+tfoot td{font-weight:600;border-bottom:0}
+.pill{display:inline-block;padding:1px 8px;border-radius:10px;font-size:.78rem;font-weight:600;color:#fff;background:var(--c)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">CE 30460 · Chapter 4 · Slides 15 to 21</div>
+  <h1>Reynolds Transport Lab</h1>
+  <p class="sub">A system is a fixed set of fluid particles. A control volume is a fixed region of space. They coincide for one instant, then the system moves on. The Reynolds Transport Theorem is the bookkeeping that connects them.</p>
+
+  <div class="tabs" role="tablist" aria-label="Activities">
+    <button role="tab" id="tab-rtt" aria-selected="true" aria-controls="p-rtt">1 · System vs. control volume</button>
+    <button role="tab" id="tab-flux" aria-selected="false" aria-controls="p-flux">2 · Flux and V · n</button>
+    <button role="tab" id="tab-md" aria-selected="false" aria-controls="p-md">3 · Material derivative</button>
+  </div>
+
+  <!-- ================= TAB 1 ================= -->
+  <section id="p-rtt" role="tabpanel" aria-labelledby="tab-rtt">
+    <div class="layout">
+      <div class="main">
+        <div class="plot">
+          <canvas id="c1" aria-label="Duct with a fixed control volume and the tagged system moving downstream"></canvas>
+          <div class="legend">
+            <span><i class="sw ln dash" style="border-color:var(--cv)"></i>fixed control volume</span>
+            <span><i class="sw" style="background:var(--sys);opacity:.45"></i>system (tagged fluid) at t + δt</span>
+            <span><i class="sw" style="background:var(--in);opacity:.55"></i>region I: new fluid that entered</span>
+            <span><i class="sw" style="background:var(--out);opacity:.55"></i>region II: system fluid that left</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="eq m" aria-label="Reynolds transport theorem">
+            <span class="t-sys">DB<sub>sys</sub>/Dt</span><span class="up">=</span>
+            <span class="t-cv">∂B<sub>cv</sub>/∂t</span><span class="up">+</span>
+            <span class="t-out">B&#775;<sub>out</sub></span><span class="up">−</span>
+            <span class="t-in">B&#775;<sub>in</sub></span>
+          </div>
+          <div class="bars" id="bars1">
+            <div class="bar-row" style="--c:var(--sys)"><div class="bl m">ΔB<sub>sys</sub>/δt<small>system, left side</small></div><div class="track"><i class="fill"></i><i class="zero"></i><i class="tick"></i></div><div class="bv"><b></b><small></small></div></div>
+            <div class="bar-row" style="--c:var(--cv)"><div class="bl m">ΔB<sub>cv</sub>/δt<small>storage in the CV</small></div><div class="track"><i class="fill"></i><i class="zero"></i><i class="tick"></i></div><div class="bv"><b></b><small></small></div></div>
+            <div class="bar-row" style="--c:var(--out)"><div class="bl m">+ B<sub>II</sub>/δt<small>carried out</small></div><div class="track"><i class="fill"></i><i class="zero"></i><i class="tick"></i></div><div class="bv"><b></b><small></small></div></div>
+            <div class="bar-row" style="--c:var(--in)"><div class="bl m">− B<sub>I</sub>/δt<small>carried in</small></div><div class="track"><i class="fill"></i><i class="zero"></i><i class="tick"></i></div><div class="bv"><b></b><small></small></div></div>
+          </div>
+          <p class="units"><span id="units1"></span> Bars are the finite-δt averages from the shaded regions. The black tick on each bar is the δt → 0 limit, which is the term in the theorem. Shrink δt and watch the bars land on the ticks.</p>
+        </div>
+
+        <p class="notice"><span class="eyebrow">What to notice</span><span id="note1"></span></p>
+      </div>
+
+      <div class="controls">
+        <div class="card">
+          <div class="eyebrow" style="margin-bottom:8px">Property B carried by the fluid</div>
+          <div class="seg" role="group" aria-label="Property B" id="segB">
+            <button data-b="mass" aria-pressed="false">Mass</button>
+            <button data-b="mom" aria-pressed="true">Momentum</button>
+            <button data-b="ke" aria-pressed="false">Energy</button>
+            <button data-b="dye" aria-pressed="false">Dye</button>
+          </div>
+          <p class="hint m" id="bdef"></p>
+        </div>
+        <div class="card">
+          <div class="row"><label for="dt1">Elapsed time δt</label><span class="val" id="dt1v"></span></div>
+          <input type="range" id="dt1" min="0.02" max="1.5" step="0.01" value="0.8">
+          <div class="btns"><button class="primary" id="play1">Play from δt = 0</button><button id="shrink1">Shrink δt → 0</button></div>
+          <p class="hint">At δt = 0 the system and the CV are the same fluid. Dark dots are the system's particles.</p>
+        </div>
+        <div class="card">
+          <div class="row"><label for="ratio1">Area ratio A₂/A₁</label><span class="val" id="ratio1v"></span></div>
+          <input type="range" id="ratio1" min="0.5" max="2" step="0.05" value="2">
+          <div class="row"><label for="amp1">Flow pulsation</label><span class="val" id="amp1v"></span></div>
+          <input type="range" id="amp1" min="0" max="0.6" step="0.05" value="0">
+          <div class="row"><label for="t01">Tag time t</label><span class="val" id="t01v"></span></div>
+          <input type="range" id="t01" min="0" max="2" step="0.02" value="0.3">
+          <dl class="kv val" id="kv1"></dl>
+          <p class="hint">Pulsation makes the flow unsteady: Q(t) = Q₀(1 + a sin 2πt/2 s). The tag time is the instant the system is defined as "whatever is in the CV".</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= TAB 2 ================= -->
+  <section id="p-flux" role="tabpanel" aria-labelledby="tab-flux" hidden>
+    <div class="layout">
+      <div class="main">
+        <div class="plot">
+          <canvas id="c2" aria-label="Rectangular control volume in a channel flow, with velocity and outward normal vectors on each face" style="cursor:grab"></canvas>
+          <div class="legend">
+            <span><i class="sw ln" style="border-color:var(--out)"></i>V where V · n &gt; 0 (outflow)</span>
+            <span><i class="sw ln" style="border-color:var(--in)"></i>V where V · n &lt; 0 (inflow)</span>
+            <span><i class="sw ln" style="border-color:var(--ink)"></i>outward normal n</span>
+            <span><i class="sw ln" style="border-color:var(--conv)"></i>normal component (V · n) n on the selected face</span>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Face-by-face ledger <span class="val">(ρ = 1000 kg/m³, per metre of depth)</span></h2>
+          <div style="overflow-x:auto">
+          <table id="tbl2">
+            <thead><tr><th>Face</th><th>angle V to n</th><th>V · n at centre</th><th>ρ∫V · n dA</th><th></th></tr></thead>
+            <tbody></tbody>
+            <tfoot><tr><td colspan="3">Net mass flux out of the CV</td><td class="val" id="net2"></td><td></td></tr></tfoot>
+          </table>
+          </div>
+        </div>
+        <p class="notice"><span class="eyebrow">What to notice</span><span id="note2"></span></p>
+      </div>
+      <div class="controls">
+        <div class="card">
+          <div class="eyebrow" style="margin-bottom:8px">Velocity profile</div>
+          <div class="seg" role="group" aria-label="Velocity profile" id="segP">
+            <button data-p="uni" aria-pressed="true">Uniform</button>
+            <button data-p="par" aria-pressed="false">Parabolic</button>
+          </div>
+          <p class="hint">Both profiles have the same mean speed, 1 m/s.</p>
+        </div>
+        <div class="card">
+          <div class="row"><label for="th2">Rotate the CV</label><span class="val" id="th2v"></span></div>
+          <input type="range" id="th2" min="-90" max="90" step="1" value="25">
+          <div class="row"><label for="y2">Move across the channel</label><span class="val" id="y2v"></span></div>
+          <input type="range" id="y2" min="-0.38" max="0.38" step="0.01" value="0.2">
+          <p class="hint">You can also drag the CV, and click a face number to select it.</p>
+        </div>
+        <div class="card">
+          <div class="eyebrow" style="margin-bottom:8px">Selected face</div>
+          <div class="seg" role="group" aria-label="Selected face" id="segF">
+            <button data-f="0" aria-pressed="true">1</button><button data-f="1" aria-pressed="false">2</button>
+            <button data-f="2" aria-pressed="false">3</button><button data-f="3" aria-pressed="false">4</button>
+          </div>
+          <dl class="kv val" id="kv2" style="margin-top:10px"></dl>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= TAB 3 ================= -->
+  <section id="p-md" role="tabpanel" aria-labelledby="tab-md" hidden>
+    <div class="layout">
+      <div class="main">
+        <div class="plot">
+          <canvas id="c3" aria-label="Duct coloured by the property field, with a fixed probe and a moving particle" style="cursor:ew-resize"></canvas>
+          <canvas id="c3b" aria-label="Time series recorded by the fixed probe and by the moving particle" style="margin-top:8px"></canvas>
+          <div class="legend">
+            <span><i class="sw ln" style="border-color:var(--cv)"></i>fixed probe (Eulerian): slope is ∂/∂t</span>
+            <span><i class="sw ln" style="border-color:var(--out)"></i>riding particle (Lagrangian): slope is D/Dt</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="eq m" aria-label="Material derivative">
+            <span class="t-out">D( )/Dt</span><span class="up">=</span>
+            <span class="t-cv">∂( )/∂t</span><span class="up">+</span>
+            <span class="t-conv">u ∂( )/∂x</span>
+            <span class="val up" style="margin-left:auto">evaluated at the particle</span>
+          </div>
+          <div class="bars" id="bars3">
+            <div class="bar-row" style="--c:var(--out)"><div class="bl m">D/Dt<small>felt by the particle</small></div><div class="track"><i class="fill"></i><i class="zero"></i></div><div class="bv"><b></b><small></small></div></div>
+            <div class="bar-row" style="--c:var(--cv)"><div class="bl m">∂/∂t<small>local, unsteady</small></div><div class="track"><i class="fill"></i><i class="zero"></i></div><div class="bv"><b></b><small></small></div></div>
+            <div class="bar-row" style="--c:var(--conv)"><div class="bl m">u ∂/∂x<small>convective</small></div><div class="track"><i class="fill"></i><i class="zero"></i></div><div class="bv"><b></b><small></small></div></div>
+          </div>
+          <p class="units" id="units3"></p>
+        </div>
+        <p class="notice"><span class="eyebrow">What to notice</span><span id="note3"></span></p>
+      </div>
+      <div class="controls">
+        <div class="card">
+          <div class="eyebrow" style="margin-bottom:8px">Scenario</div>
+          <div class="seg" role="group" aria-label="Scenario" id="segS">
+            <button data-s="grad" aria-pressed="true">Steady gradient</button>
+            <button data-s="heat" aria-pressed="false">Uniform heating</button>
+            <button data-s="slug" aria-pressed="false">Carried slug</button>
+            <button data-s="vel" aria-pressed="false">Velocity</button>
+          </div>
+          <p class="hint m" id="sdef"></p>
+        </div>
+        <div class="card">
+          <div class="btns" style="margin-bottom:10px"><button class="primary" id="play3">Pause</button></div>
+          <div class="row"><label for="xp3">Probe position x</label><span class="val" id="xp3v"></span></div>
+          <input type="range" id="xp3" min="0.3" max="4.9" step="0.05" value="2.4">
+          <div class="row"><label for="ratio3">Area ratio A₂/A₁</label><span class="val" id="ratio3v"></span></div>
+          <input type="range" id="ratio3" min="0.5" max="2" step="0.05" value="2">
+          <div class="row"><label for="amp3">Flow pulsation</label><span class="val" id="amp3v"></span></div>
+          <input type="range" id="amp3" min="0" max="0.6" step="0.05" value="0">
+          <dl class="kv val" id="kv3"></dl>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const RHO=1000,Q0=0.5,OM=Math.PI,XR=5.2,XA=0.6,XB=3.6,X1=1.2,X2=3.0,HIN=0.5;
+const SC=0.35,SIG=0.14,C0=2;
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const st={tab:'rtt',ratio:2,amp:0,B:'mom',t0:0.3,dt:0.8,play1:false,shrink:false,
+  prof:'uni',cx:-0.1,cy:0.2,th:25,face:0,
+  scen:'grad',xp:2.4,t3:0,play3:!reduce,hist:[],lastSp:0,scale3:1};
+
+/* ---------- colours ---------- */
+const C={};const NAMES=['bg','panel','ink','ink-2','line','grid','in','out','cv','sys','conv','slug','fluid','plate','vec'];
+function readColors(){const cs=getComputedStyle(document.documentElement);NAMES.forEach(n=>C[n]=cs.getPropertyValue('--'+n).trim()||'#888');}
+readColors();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',readColors);
+new MutationObserver(readColors).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+/* ---------- duct geometry, quasi-1D incompressible flow ---------- */
+function K(){return HIN*(st.ratio-1)/(XB-XA);}
+function H(x){if(x<=XA)return HIN;if(x>=XB)return HIN*st.ratio;return HIN+K()*(x-XA);}
+function dH(x){return (x>XA&&x<XB)?K():0;}
+function S(x){ // fluid volume per unit depth between 0 and x
+  if(x<=XA)return HIN*x;const k=K(),d=Math.min(x,XB)-XA;let s=HIN*XA+HIN*d+k*d*d/2;
+  if(x>XB)s+=HIN*st.ratio*(x-XB);return s;}
+function Sinv(s){const sA=HIN*XA;if(s<=sA)return s/HIN;const k=K(),d=XB-XA,sB=sA+HIN*d+k*d*d/2;
+  if(s<=sB){const r=s-sA;return Math.abs(k)<1e-9?XA+r/HIN:XA+(-HIN+Math.sqrt(HIN*HIN+2*k*r))/k;}
+  return XB+(s-sB)/(HIN*st.ratio);}
+function Q(t){return Q0*(1+st.amp*Math.sin(OM*t));}
+function Phi(t){return Q0*(t+st.amp*(1-Math.cos(OM*t))/OM);}
+function wrapS(d){const T=S(XR);return d-T*Math.round(d/T);}
+function mod(a,n){return ((a%n)+n)%n;}
+function gauss(x,t,sig){const d=wrapS(S(x)-SC-Phi(t))/sig;return Math.exp(-d*d);}
+
+/* section-averaged b for the RTT tab */
+function bbar(x,t){switch(st.B){
+  case 'mass':return 1;
+  case 'mom':return Q(t)/H(x);
+  case 'ke':{const u=Q(t)/H(x),s=dH(x);return 0.5*u*u*(1+s*s/12);}
+  default:return C0*gauss(x,t,SIG);}}
+function Bint(xl,xr,t){if(xr-xl<1e-9)return 0;const n=400,h=(xr-xl)/n;let s=0;
+  for(let i=0;i<=n;i++){const x=xl+i*h,w=(i===0||i===n)?1:(i%2?4:2);s+=w*bbar(x,t)*H(x);}
+  return RHO*s*h/3;}
+function dtMax(){const lim=0.6*(S(X2)-S(X1));let d=0.02;const p0=Phi(st.t0);
+  while(d<3&&Phi(st.t0+d)-p0<lim)d+=0.01;return Math.round(d*100)/100;}
+
+/* ---------- helpers ---------- */
+function fit(c,aspect,minH){const w=c.clientWidth;if(!w)return null;const h=Math.max(Math.round(w/aspect),minH),d=window.devicePixelRatio||1;
+  if(c.width!==Math.round(w*d)||c.height!==Math.round(h*d)){c.width=Math.round(w*d);c.height=Math.round(h*d);c.style.height=h+'px';}
+  const g=c.getContext('2d');g.setTransform(d,0,0,d,0,0);g.clearRect(0,0,w,h);return {g,w,h};}
+function fmt(v){const a=Math.abs(v);if(a<0.05)return '0.0';return a>=10000?v.toFixed(0):v.toFixed(1);}
+function fmt2(v){return Math.abs(v)<0.005?'0.00':v.toFixed(2);}
+function arrow(g,x0,y0,x1,y1,col,lw){const dx=x1-x0,dy=y1-y0,L=Math.hypot(dx,dy);g.strokeStyle=col;g.fillStyle=col;g.lineWidth=lw||1.5;
+  if(L<2){g.beginPath();g.arc(x0,y0,1.5,0,7);g.fill();return;}
+  const ux=dx/L,uy=dy/L,hd=Math.min(7,L*0.5);
+  g.beginPath();g.moveTo(x0,y0);g.lineTo(x1-ux*hd*0.8,y1-uy*hd*0.8);g.stroke();
+  g.beginPath();g.moveTo(x1,y1);g.lineTo(x1-ux*hd-uy*hd*0.5,y1-uy*hd+ux*hd*0.5);g.lineTo(x1-ux*hd+uy*hd*0.5,y1-uy*hd-ux*hd*0.5);g.closePath();g.fill();}
+function setBar(row,v,lim,scale,showLim){const f=row.querySelector('.fill'),tk=row.querySelector('.tick');
+  const w=Math.min(50,Math.abs(v)/scale*50);f.style.width=w+'%';f.style.left=(v>=0?50:50-w)+'%';
+  if(tk){tk.style.left=(50+Math.max(-50,Math.min(50,lim/scale*50)))+'%';}
+  row.querySelector('b').textContent=fmt(v);row.querySelector('.bv small').textContent=showLim?('limit '+fmt(lim)):'';}
+function press(seg,attr,val){seg.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset[attr]===String(val))));}
+
+/* ---------- duct drawing shared by tabs 1 and 3 ---------- */
+function ductView(w,h){const sx=w/XR,sy=Math.min((h-34)/1.06,sx*2.4);return {X:x=>x*sx,Y:y=>h/2-y*sy,sx,sy};}
+function regionPath(g,v,xl,xr){xl=Math.max(0,xl);xr=Math.min(XR,xr);const n=40;g.beginPath();
+  for(let i=0;i<=n;i++){const x=xl+(xr-xl)*i/n;g.lineTo(v.X(x),v.Y(H(x)/2));}
+  for(let i=n;i>=0;i--){const x=xl+(xr-xl)*i/n;g.lineTo(v.X(x),v.Y(-H(x)/2));}g.closePath();}
+function walls(g,v){g.strokeStyle=C.plate;g.lineWidth=3;[1,-1].forEach(sg=>{g.beginPath();for(let i=0;i<=52;i++){const x=XR*i/52;g.lineTo(v.X(x),v.Y(sg*H(x)/2)-sg*1.5);}g.stroke();});}
+
+/* tracers: label (s0, eta) is constant along a pathline in this flow */
+const TR=[];for(let i=0;i<150;i++)TR.push({s:(i+0.5)/150,e:(((i*0.618034)%1)*2-1)*0.9});
+
+/* ================= TAB 1 ================= */
+const UNITS={mass:'Rates in kg/s per metre of depth.',mom:'Rates in N per metre of depth (momentum per second).',ke:'Rates in W per metre of depth.',dye:'Rates in g/s per metre of depth (dye concentration c in g/kg).'};
+const BDEF={mass:'B = m, &nbsp; b = 1',mom:'B = mu, &nbsp; b = u &nbsp;<span class="up">(x-momentum)</span>',ke:'B = ½mV², &nbsp; b = ½V²',dye:'B = dye mass, &nbsp; b = c &nbsp;<span class="up">(dye per kg of fluid)</span>'};
+const NOTE1={
+ mass:'The system can never gain or lose mass, so the left side is zero. The duct stays full of constant-density fluid, so the mass stored in the CV never changes either. What survives is continuity: the mass carried out equals the mass carried in, even though V₂ ≠ V₁. Region II and region I hold the same mass but have different shapes.',
+ mom:'With steady flow nothing inside the CV changes, so the storage bar is zero. The system still changes its momentum, because its fluid moves to a section with a different speed. Out minus in is not zero, and by Newton\'s second law that rate is the net force on the fluid (Chapter 5). Add pulsation to wake up the storage term.',
+ ke:'Same structure as momentum, but b = ½V² grows with the square of speed, so the imbalance between out and in is larger. Try a converging duct (A₂/A₁ < 1): the system gains kinetic energy, which must come from pressure work.',
+ dye:'Every particle keeps its own dye, so the system total cannot change and the left side is always zero. The CV tells a different story: its content rises while the slug enters and falls while it leaves. Storage and net outflow cancel exactly. Slide the tag time to catch the slug at the inlet, inside, or at the outlet.'};
+const bars1=[...$('bars1').children];
+function drawRTT(){
+  const f=fit($('c1'),3.4,190);if(!f)return;const {g,w,h}=f,v=ductView(w,h);
+  const t1=st.t0+st.dt,adv=Phi(t1)-Phi(st.t0),xa=Sinv(S(X1)+adv),xb=Sinv(S(X2)+adv);
+  g.fillStyle=C.fluid;regionPath(g,v,0,XR);g.fill();
+  if(st.B==='dye'){g.save();regionPath(g,v,0,XR);g.clip();g.fillStyle=C.slug;
+    for(let px=0;px<w;px+=2){const a=gauss((px+1)/v.sx,t1,SIG);if(a>0.02){g.globalAlpha=a*0.75;g.fillRect(px,0,2,h);}}g.restore();}
+  g.globalAlpha=0.5;g.fillStyle=C.in;regionPath(g,v,X1,xa);g.fill();
+  g.globalAlpha=0.32;g.fillStyle=C.sys;regionPath(g,v,xa,xb);g.fill();
+  g.globalAlpha=0.5;g.fillStyle=C.out;regionPath(g,v,X2,xb);g.fill();g.globalAlpha=1;
+  g.setLineDash([4,3]);g.strokeStyle=C.sys;g.lineWidth=1.5;regionPath(g,v,xa,xb);g.stroke();
+  // tracers
+  const T=S(XR),s1=S(X1),s2=S(X2),p0=Phi(st.t0),p1=Phi(t1);
+  TR.forEach(p=>{const sAt0=mod(p.s*T+p0,T),inSys=sAt0>=s1&&sAt0<=s2;const x=Sinv(inSys?sAt0+adv:mod(p.s*T+p1,T));
+    g.fillStyle=inSys?C.ink:C.vec;g.beginPath();g.arc(v.X(x),v.Y(p.e*H(x)/2),inSys?2.4:1.8,0,7);g.fill();});
+  g.setLineDash([7,4]);g.strokeStyle=C.cv;g.lineWidth=2.5;regionPath(g,v,X1,X2);g.stroke();g.setLineDash([]);
+  walls(g,v);
+  g.font='600 12px "Source Sans 3",sans-serif';g.textAlign='center';g.fillStyle=C['ink-2'];
+  g.fillText('(1)',v.X(X1),h-4);g.fillText('(2)',v.X(X2),h-4);
+  g.fillStyle=C.ink;g.font='600 13px "Source Sans 3",sans-serif';
+  const lab=(a,b,s)=>{if(v.X(b)-v.X(a)>g.measureText(s).width+6)g.fillText(s,v.X((a+b)/2),v.Y(0)+4);};
+  lab(X1,xa,'I');lab(xa,X2,'CV − I');lab(X2,xb,'II');
+  g.textAlign='left';g.fillStyle=C['ink-2'];g.font='12px "Source Sans 3",sans-serif';g.fillText('flow →',6,14);
+
+  // ledger
+  const dt=st.dt,cv=(Bint(X1,X2,t1)-Bint(X1,X2,st.t0))/dt,o=Bint(X2,xb,t1)/dt,i=Bint(X1,xa,t1)/dt,sys=cv+o-i;
+  const e=1e-4,lcv=(Bint(X1,X2,st.t0+e)-Bint(X1,X2,st.t0-e))/(2*e),lo=RHO*Q(st.t0)*bbar(X2,st.t0),li=RHO*Q(st.t0)*bbar(X1,st.t0),ls=lcv+lo-li;
+  const sc=Math.max(1e-6,...[cv,o,i,sys,lcv,lo,li,ls].map(Math.abs))*1.12;
+  setBar(bars1[0],sys,ls,sc,true);setBar(bars1[1],cv,lcv,sc,true);setBar(bars1[2],o,lo,sc,true);setBar(bars1[3],i,li,sc,true);
+  $('dt1v').textContent='δt = '+dt.toFixed(2)+' s';
+  $('kv1').innerHTML='<dt>V₁ at tag time</dt><dd>'+fmt2(Q(st.t0)/H(X1))+' m/s</dd><dt>V₂ at tag time</dt><dd>'+fmt2(Q(st.t0)/H(X2))+' m/s</dd><dt>Q(t)</dt><dd>'+fmt2(Q(st.t0))+' m²/s</dd>';
+}
+function sync1(){const mx=dtMax();$('dt1').max=mx;if(st.dt>mx)st.dt=mx;$('dt1').value=st.dt;
+  $('ratio1v').textContent=$('ratio3v').textContent=st.ratio.toFixed(2)+(st.ratio>1.01?' (diverging)':st.ratio<0.99?' (converging)':' (straight)');
+  $('amp1v').textContent=$('amp3v').textContent=st.amp===0?'steady':'a = '+st.amp.toFixed(2);
+  $('ratio1').value=$('ratio3').value=st.ratio;$('amp1').value=$('amp3').value=st.amp;
+  $('t01v').textContent='t = '+st.t0.toFixed(2)+' s';
+  $('units1').textContent=UNITS[st.B];$('bdef').innerHTML=BDEF[st.B];$('note1').textContent=NOTE1[st.B];press($('segB'),'b',st.B);
+  $('play1').textContent=st.play1?'Pause':'Play from δt = 0';}
+$('segB').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;st.B=b.dataset.b;if(st.B==='dye'){st.t0=0.55;$('t01').value=0.55;st.dt=0.4;}sync1();});
+$('dt1').addEventListener('input',e=>{st.dt=+e.target.value;st.play1=st.shrink=false;sync1();});
+$('t01').addEventListener('input',e=>{st.t0=+e.target.value;sync1();});
+['ratio1','ratio3'].forEach(id=>$(id).addEventListener('input',e=>{st.ratio=+e.target.value;sync1();reset3();}));
+['amp1','amp3'].forEach(id=>$(id).addEventListener('input',e=>{st.amp=+e.target.value;sync1();reset3();}));
+$('play1').addEventListener('click',()=>{st.shrink=false;if(st.play1){st.play1=false;}else{st.dt=0.02;st.play1=true;}sync1();});
+$('shrink1').addEventListener('click',()=>{st.play1=false;st.shrink=true;sync1();});
+
+/* ================= TAB 2 ================= */
+const WW=4.4,WH=2.8,HW=1.2,A2=0.7,B2=0.4;
+function u2(y){if(st.prof==='uni')return Math.abs(y)<=HW?1:0;return Math.max(0,1.5*(1-(y/HW)*(y/HW)));}
+function faces(){const t=st.th*Math.PI/180,e1=[Math.cos(t),Math.sin(t)],e2=[-Math.sin(t),Math.cos(t)],c=[st.cx,st.cy];
+  const mk=(n,tn,off,half)=>({n,t:tn,c:[c[0]+n[0]*off,c[1]+n[1]*off],half});
+  return [mk(e1,e2,A2,B2),mk(e2,e1,B2,A2),mk([-e1[0],-e1[1]],e2,A2,B2),mk([-e2[0],-e2[1]],e1,B2,A2)];}
+function faceFlux(f){const ya=f.c[1]-f.t[1]*f.half,yb=f.c[1]+f.t[1]*f.half;
+  return RHO*f.n[0]*(2*f.half/6)*(u2(ya)+4*u2(f.c[1])+u2(yb));}
+const dots2=[];for(let i=0;i<70;i++)dots2.push({x:-2.2+WW*((i*0.618034)%1),y:-1.12+2.24*((i*0.754877)%1)});
+let view2=null;
+function drawFlux(dtr){
+  const f=fit($('c2'),WW/WH,200);if(!f)return;const {g,w,h}=f,s=Math.min(w/WW,h/WH),X=x=>w/2+x*s,Y=y=>h/2-y*s;view2={w,h,s};
+  g.fillStyle=C.fluid;g.fillRect(0,Y(HW),w,2*HW*s);
+  g.strokeStyle=C.plate;g.lineWidth=3;[HW,-HW].forEach(y=>{g.beginPath();g.moveTo(0,Y(y));g.lineTo(w,Y(y));g.stroke();});
+  dots2.forEach(d=>{d.x+=u2(d.y)*dtr*0.5;if(d.x>2.2)d.x-=WW;g.fillStyle=C.vec;g.beginPath();g.arc(X(d.x),Y(d.y),1.8,0,7);g.fill();});
+  // inlet profile
+  const VS=0.42;for(let k=-5;k<=5;k++){const y=k*0.22;arrow(g,X(-2.12),Y(y),X(-2.12+u2(y)*VS),Y(y),C['ink-2'],1.2);}
+  const F=faces();
+  // CV body
+  g.beginPath();const t=st.th*Math.PI/180,e1=[Math.cos(t),Math.sin(t)],e2=[-Math.sin(t),Math.cos(t)];
+  [[1,1],[-1,1],[-1,-1],[1,-1]].forEach(([a,b])=>g.lineTo(X(st.cx+a*A2*e1[0]+b*B2*e2[0]),Y(st.cy+a*A2*e1[1]+b*B2*e2[1])));g.closePath();
+  g.globalAlpha=0.12;g.fillStyle=C.cv;g.fill();g.globalAlpha=1;g.setLineDash([7,4]);g.strokeStyle=C.cv;g.lineWidth=2.5;g.stroke();g.setLineDash([]);
+  F.forEach((fc,i)=>{const sel=i===st.face;
+    for(let k=-2;k<=2;k++){const p=[fc.c[0]+fc.t[0]*fc.half*k/2.4,fc.c[1]+fc.t[1]*fc.half*k/2.4],u=u2(p[1]),vn=u*fc.n[0];
+      const col=Math.abs(vn)<0.02?C['ink-2']:(vn>0?C.out:C.in);
+      // inflow arrows end on the face, outflow arrows start on it
+      if(vn<0)arrow(g,X(p[0]-u*VS),Y(p[1]),X(p[0]),Y(p[1]),col,sel?2.2:1.4);else arrow(g,X(p[0]),Y(p[1]),X(p[0]+u*VS),Y(p[1]),col,sel?2.2:1.4);}
+    arrow(g,X(fc.c[0]),Y(fc.c[1]),X(fc.c[0]+fc.n[0]*0.4),Y(fc.c[1]+fc.n[1]*0.4),C.ink,sel?2.6:1.6);
+    if(sel){const vn=u2(fc.c[1])*fc.n[0];arrow(g,X(fc.c[0]),Y(fc.c[1]),X(fc.c[0]+fc.n[0]*vn*VS),Y(fc.c[1]+fc.n[1]*vn*VS),C.conv,3.2);}
+    const lp=[fc.c[0]-fc.n[0]*0.17,fc.c[1]-fc.n[1]*0.17];
+    g.beginPath();g.arc(X(lp[0]),Y(lp[1]),9,0,7);g.fillStyle=sel?C.ink:C.panel;g.fill();g.strokeStyle=C.ink;g.lineWidth=1;g.stroke();
+    g.fillStyle=sel?C.bg:C.ink;g.font='600 11px "Source Sans 3",sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(i+1,X(lp[0]),Y(lp[1])+0.5);g.textBaseline='alphabetic';});
+  // table
+  let net=0,rows='';F.forEach((fc,i)=>{const fl=faceFlux(fc);net+=fl;const vn=u2(fc.c[1])*fc.n[0],ang=Math.acos(Math.max(-1,Math.min(1,fc.n[0])))*180/Math.PI;
+    const kind=Math.abs(fl)<0.5?['no flow','var(--ink-2)']:(fl>0?['outflow','var(--out)']:['inflow','var(--in)']);
+    rows+='<tr'+(i===st.face?' class="selrow"':'')+'><td>Face '+(i+1)+'</td><td class="val">'+ang.toFixed(0)+'°</td><td class="val">'+fmt2(vn)+' m/s</td><td class="val">'+fmt(fl)+' kg/s</td><td><span class="pill" style="--c:'+kind[1]+'">'+kind[0]+'</span></td></tr>';});
+  $('tbl2').tBodies[0].innerHTML=rows;$('net2').textContent=fmt(net)+' kg/s';
+  const fc=F[st.face],vc=u2(fc.c[1]),vn=vc*fc.n[0],ang=Math.acos(Math.max(-1,Math.min(1,fc.n[0])))*180/Math.PI,est=RHO*vn*2*fc.half,ex=faceFlux(fc);
+  $('kv2').innerHTML='<dt>n</dt><dd>('+fmt2(fc.n[0])+', '+fmt2(fc.n[1])+')</dd><dt>|V| at centre</dt><dd>'+fmt2(vc)+' m/s</dd><dt>angle θ, V to n</dt><dd>'+ang.toFixed(0)+'°</dd><dt>V · n = |V| cos θ</dt><dd>'+fmt2(vn)+' m/s</dd><dt>face area A</dt><dd>'+fmt2(2*fc.half)+' m²/m</dd><dt>ρ (V · n)<sub>centre</sub> A</dt><dd>'+fmt(est)+' kg/s</dd><dt>ρ ∫ V · n dA</dt><dd>'+fmt(ex)+' kg/s</dd>';
+  $('th2v').textContent=st.th+'°';$('y2v').textContent='y = '+fmt2(st.cy)+' m';
+  $('note2').textContent=st.prof==='uni'
+    ?'The sign of V · n does the bookkeeping for you: θ below 90° is outflow (positive), θ above 90° is inflow (negative), and a face parallel to the flow (θ = 90°) carries nothing no matter how fast the fluid slides past it. Rotate the CV and watch a face switch from inflow to outflow as θ crosses 90°. The four faces always sum to zero for steady incompressible flow.'
+    :'With a parabolic profile the velocity varies along each face, so "ρ V A" using the centre velocity no longer matches the integral. Compare the last two lines for the selected face, then move the CV toward a wall. This is why the theorem is written with ∫ ρ b V · n dA. The net over all four faces is still exactly zero.';
+}
+function sync2(){press($('segP'),'p',st.prof);press($('segF'),'f',st.face);$('th2').value=st.th;$('y2').value=st.cy;}
+$('segP').addEventListener('click',e=>{const b=e.target.closest('button');if(b){st.prof=b.dataset.p;sync2();}});
+$('segF').addEventListener('click',e=>{const b=e.target.closest('button');if(b){st.face=+b.dataset.f;sync2();}});
+$('th2').addEventListener('input',e=>{st.th=+e.target.value;});
+$('y2').addEventListener('input',e=>{st.cy=+e.target.value;});
+(function(){const c=$('c2');let drag=null;
+  const world=ev=>{const r=c.getBoundingClientRect();return [(ev.clientX-r.left-view2.w/2)/view2.s,(view2.h/2-(ev.clientY-r.top))/view2.s];};
+  c.addEventListener('pointerdown',ev=>{if(!view2)return;const p=world(ev);let hit=-1;
+    faces().forEach((f,i)=>{if(Math.hypot(p[0]-(f.c[0]-f.n[0]*0.17),p[1]-(f.c[1]-f.n[1]*0.17))<0.16)hit=i;});
+    if(hit>=0){st.face=hit;sync2();return;}
+    drag=[p[0]-st.cx,p[1]-st.cy];c.setPointerCapture(ev.pointerId);c.style.cursor='grabbing';});
+  c.addEventListener('pointermove',ev=>{if(!drag)return;const p=world(ev);st.cx=Math.max(-0.9,Math.min(1.1,p[0]-drag[0]));st.cy=Math.max(-0.38,Math.min(0.38,p[1]-drag[1]));sync2();});
+  const end=()=>{drag=null;c.style.cursor='grab';};c.addEventListener('pointerup',end);c.addEventListener('pointercancel',end);})();
+
+/* ================= TAB 3 ================= */
+const SCEN={
+ grad:{unit:'°C',sym:'T',off:0,def:'T = 20 + 4x &nbsp;<span class="up">(°C, steady in time)</span>',range:()=>[18,43],
+   f:(x,t)=>20+4*x,
+   note:'The field never changes in time, so the fixed probe draws a flat line and ∂T/∂t = 0. The particle still warms up, because the flow carries it into warmer fluid: DT/Dt = u ∂T/∂x. This is the slide 15 example. Notice the particle warms fastest where the duct is narrow and u is large.'},
+ heat:{unit:'°C',sym:'T',off:0,def:'T = 25 + 5 sin(2πt / 6 s) &nbsp;<span class="up">(°C, same everywhere)</span>',range:()=>[19,31],
+   f:(x,t)=>25+5*Math.sin(2*Math.PI*t/6),
+   note:'The whole duct warms and cools together. There is no spatial gradient, so the convective term is zero and the two traces lie on top of each other: DT/Dt = ∂T/∂t. Moving with the flow gives no new information.'},
+ slug:{unit:'°C',sym:'T',off:SC-0.6*0.2,def:'<span class="up">A warm slug carried by the flow, </span>DT/Dt = 0',range:()=>[18,32],
+   f:(x,t)=>20+10*gauss(x,t,0.2),
+   note:'The probe sees a spike as the slug sweeps past. The particle rides inside the slug and records no change at all: DT/Dt = 0. The local and convective terms are equal and opposite. Same fluid, two very different records. This is the dye case from tab 1 seen at a point.'},
+ vel:{unit:'m/s',sym:'u',off:0,def:'u = Q(t) / A(x) &nbsp;<span class="up">(the property is the velocity itself)</span>',
+   range:()=>{const lo=Q0*(1-st.amp)/Math.max(HIN,HIN*st.ratio),hi=Q0*(1+st.amp)/Math.min(HIN,HIN*st.ratio);return [lo-0.15,hi+0.15];},
+   f:(x,t)=>Q(t)/H(x),
+   note:'Here D u/Dt is the particle\'s acceleration. With steady flow ∂u/∂t = 0 at every point, yet the particle speeds up or slows down as the area changes: a = u ∂u/∂x. A steady flow is not an acceleration-free flow. Add pulsation to bring in the local term, and try a converging duct.'}};
+function terms(x,t){const sc=SCEN[st.scen],e=1e-4,loc=(sc.f(x,t+e)-sc.f(x,t-e))/(2*e),conv=Q(t)/H(x)*(sc.f(x+e,t)-sc.f(x-e,t))/(2*e);return {loc,conv,sum:loc+conv};}
+function partS(t){return mod(SCEN[st.scen].off+Phi(t),S(XR));}
+function step3(dt){st.t3+=dt;const sp=partS(st.t3);if(sp<st.lastSp)st.hist.push(null);st.lastSp=sp;const sc=SCEN[st.scen];
+  st.hist.push({t:st.t3,a:sc.f(st.xp,st.t3),b:sc.f(Sinv(sp),st.t3)});
+  while(st.hist.length&&(st.hist[0]===null||st.hist[0].t<st.t3-8))st.hist.shift();}
+function reset3(){st.hist=[];st.lastSp=partS(st.t3);let m=1e-6;
+  for(let x=0.05;x<XR;x+=0.1)for(let t=0;t<6;t+=0.25){const k=terms(x,t);m=Math.max(m,Math.abs(k.loc),Math.abs(k.conv),Math.abs(k.sum));}
+  st.scale3=m*1.1;for(let i=0;i<210;i++)step3(1/30);sync3();}
+const bars3=[...$('bars3').children];
+function drawMD(){
+  const f=fit($('c3'),3.6,170);if(!f)return;const {g,w,h}=f,v=ductView(w,h),sc=SCEN[st.scen],[lo,hi]=sc.range(),t=st.t3;
+  g.save();regionPath(g,v,0,XR);g.clip();
+  for(let px=0;px<w;px+=2){const n=Math.max(0,Math.min(1,(sc.f((px+1)/v.sx,t)-lo)/(hi-lo)));
+    g.globalAlpha=0.7*(1-n);g.fillStyle=C.in;g.fillRect(px,0,2,h);g.globalAlpha=0.7*n;g.fillStyle=C.out;g.fillRect(px,0,2,h);}
+  g.restore();g.globalAlpha=1;walls(g,v);
+  // probe
+  const px=v.X(st.xp);g.setLineDash([5,4]);g.strokeStyle=C.cv;g.lineWidth=2;g.beginPath();g.moveTo(px,v.Y(H(st.xp)/2));g.lineTo(px,v.Y(-H(st.xp)/2));g.stroke();g.setLineDash([]);
+  g.fillStyle=C.cv;g.beginPath();g.moveTo(px,v.Y(H(st.xp)/2)-3);g.lineTo(px-7,v.Y(H(st.xp)/2)-15);g.lineTo(px+7,v.Y(H(st.xp)/2)-15);g.closePath();g.fill();
+  // particle
+  const xq=Sinv(partS(t)),qx=v.X(xq),qy=v.Y(0),uq=Q(t)/H(xq);
+  arrow(g,qx,qy,qx+uq*v.sx*0.3,qy,C.ink,2);g.beginPath();g.arc(qx,qy,6,0,7);g.fillStyle=C.out;g.fill();g.strokeStyle=C.panel;g.lineWidth=2;g.stroke();
+  g.font='12px "Source Sans 3",sans-serif';g.fillStyle=C['ink-2'];g.textAlign='left';g.fillText('flow →   blue = low '+sc.sym+', orange = high '+sc.sym,6,h-4);
+
+  // chart
+  const f2=fit($('c3b'),4.2,150);if(f2){const G=f2.g,W=f2.w,Hh=f2.h,L=40,R=8,T=8,Bm=20,tx=tt=>L+(tt-(t-8))/8*(W-L-R),vy=val=>T+(hi-val)/(hi-lo)*(Hh-T-Bm);
+    G.strokeStyle=C.grid;G.lineWidth=1;G.font='11px "JetBrains Mono",monospace';G.fillStyle=C['ink-2'];G.textAlign='right';
+    for(let k=0;k<=4;k++){const val=lo+(hi-lo)*k/4,y=vy(val);G.beginPath();G.moveTo(L,y);G.lineTo(W-R,y);G.stroke();G.fillText(val.toFixed(sc.unit==='°C'?0:1),L-5,y+4);}
+    G.textAlign='center';for(let k=Math.ceil(t-8);k<=t;k+=2){if(k<0)continue;G.fillText(k+' s',tx(k),Hh-5);}
+    G.textAlign='left';G.fillText(sc.sym+' ('+sc.unit+')',L+4,T+10);
+    [['a',C.cv,2.5],['b',C.out,2.5]].forEach(([key,col,lw])=>{G.strokeStyle=col;G.lineWidth=lw;G.beginPath();let pen=false;
+      st.hist.forEach(p=>{if(p===null){if(key==='b')pen=false;return;}const x=tx(p.t),y=vy(p[key]);if(pen)G.lineTo(x,y);else{G.moveTo(x,y);pen=true;}});G.stroke();});
+    const last=st.hist[st.hist.length-1];if(last){[['a',C.cv],['b',C.out]].forEach(([key,col])=>{G.fillStyle=col;G.beginPath();G.arc(tx(last.t),vy(last[key]),4,0,7);G.fill();});}}
+  const k=terms(xq,t),kp=terms(st.xp,t);setBar(bars3[0],k.sum,0,st.scale3,false);setBar(bars3[1],k.loc,0,st.scale3,false);setBar(bars3[2],k.conv,0,st.scale3,false);
+  bars3.forEach(r=>{const b=r.querySelector('b');b.textContent=fmt2(+( [k.sum,k.loc,k.conv][bars3.indexOf(r)] ));});
+  $('kv3').innerHTML='<dt>probe reads</dt><dd>'+fmt2(sc.f(st.xp,t))+' '+sc.unit+'</dd><dt>∂'+sc.sym+'/∂t at probe</dt><dd>'+fmt2(kp.loc)+' '+sc.unit+'/s</dd><dt>particle reads</dt><dd>'+fmt2(sc.f(xq,t))+' '+sc.unit+'</dd><dt>particle at x</dt><dd>'+fmt2(xq)+' m</dd><dt>particle speed u</dt><dd>'+fmt2(uq)+' m/s</dd>';
+}
+function sync3(){const sc=SCEN[st.scen];press($('segS'),'s',st.scen);$('sdef').innerHTML=sc.def;$('note3').textContent=sc.note;
+  $('units3').textContent='Rates in '+(sc.unit==='°C'?'°C per second':'m/s²')+', evaluated where the particle is right now.';
+  $('xp3v').textContent='x = '+st.xp.toFixed(2)+' m';$('xp3').value=st.xp;$('play3').textContent=st.play3?'Pause':'Play';}
+$('segS').addEventListener('click',e=>{const b=e.target.closest('button');if(b){st.scen=b.dataset.s;reset3();}});
+$('xp3').addEventListener('input',e=>{st.xp=+e.target.value;reset3();});
+$('play3').addEventListener('click',()=>{st.play3=!st.play3;sync3();});
+(function(){const c=$('c3');let down=false;const set=ev=>{const r=c.getBoundingClientRect();st.xp=Math.max(0.3,Math.min(4.9,Math.round((ev.clientX-r.left)/r.width*XR*20)/20));reset3();};
+  c.addEventListener('pointerdown',ev=>{down=true;c.setPointerCapture(ev.pointerId);set(ev);});c.addEventListener('pointermove',ev=>{if(down)set(ev);});
+  ['pointerup','pointercancel'].forEach(n=>c.addEventListener(n,()=>{down=false;}));})();
+
+/* ================= tabs + loop ================= */
+const TABS={rtt:'p-rtt',flux:'p-flux',md:'p-md'};
+function showTab(k){st.tab=k;Object.keys(TABS).forEach(n=>{$(TABS[n]).hidden=n!==k;$('tab-'+n).setAttribute('aria-selected',String(n===k));});}
+Object.keys(TABS).forEach(n=>$('tab-'+n).addEventListener('click',()=>showTab(n)));
+let last=performance.now();
+function frame(now){const dtr=Math.min(0.05,(now-last)/1000);last=now;
+  if(st.tab==='rtt'){
+    if(st.play1){st.dt+=dtr*0.4;const mx=dtMax();if(st.dt>=mx){st.dt=mx;st.play1=false;}sync1();}
+    if(st.shrink){st.dt=Math.max(0.02,st.dt-dtr*Math.max(0.08,st.dt*0.9));if(st.dt<=0.021){st.dt=0.02;st.shrink=false;}sync1();}
+    drawRTT();}
+  else if(st.tab==='flux')drawFlux(reduce?0:dtr);
+  else{if(st.play3)step3(dtr);drawMD();}
+  requestAnimationFrame(frame);}
+sync1();sync2();reset3();requestAnimationFrame(frame);
+})();
+</script>
