@@ -1,0 +1,715 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Streamfunction Lab</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,500;0,600;1,500&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#F6F5F0; --panel:#FFFFFF; --ink:#1B2430; --ink-2:#5A6270; --line:#D9D7CF; --grid:#ECEAE3;
+  --in:#2F6DB5; --out:#C8552E; --cv:#2E8B6E; --sys:#4A5260; --conv:#7A5BB5; --slug:#D49A1E;
+  --fluid:#E6EEF6; --plate:#3A3F47; --vec:#AEBBCD; --focus:#2F6DB5;
+  --map0:#F3F6FA; --map1:#6E98CC; --ok:#2E8B6E; --bad:#C8552E;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141920; --panel:#1C232C; --ink:#E8E6E1; --ink-2:#A2A9B4; --line:#333B46; --grid:#242C36;
+    --in:#6FA3E6; --out:#EE8A63; --cv:#5DC29E; --sys:#B8BFCA; --conv:#A98BE0; --slug:#E6B84D;
+    --fluid:#1F2A37; --plate:#C9CED6; --vec:#56657A;
+    --map0:#1A222D; --map1:#5F93D6; --ok:#5DC29E; --bad:#EE8A63;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141920; --panel:#1C232C; --ink:#E8E6E1; --ink-2:#A2A9B4; --line:#333B46; --grid:#242C36;
+  --in:#6FA3E6; --out:#EE8A63; --cv:#5DC29E; --sys:#B8BFCA; --conv:#A98BE0; --slug:#E6B84D;
+  --fluid:#1F2A37; --plate:#C9CED6; --vec:#56657A;
+  --map0:#1A222D; --map1:#5F93D6; --ok:#5DC29E; --bad:#EE8A63;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+.nt{text-transform:none;letter-spacing:0}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Source Sans 3",system-ui,sans-serif;font-size:15px;line-height:1.45}
+.wrap{max-width:1180px;margin:0 auto;padding-block:20px 40px;padding-inline:16px}
+h1{font-family:"Source Serif 4",Georgia,serif;font-weight:600;font-size:1.7rem;margin:0 0 4px;text-wrap:balance}
+h2{font-family:"Source Serif 4",Georgia,serif;font-weight:600;font-size:1.1rem;margin:0 0 8px}
+.sub{color:var(--ink-2);margin:0 0 16px;max-width:72ch}
+.eyebrow{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);font-weight:600}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin:0 0 16px}
+.tabs button{font:inherit;font-weight:600;padding:9px 14px;border:0;border-bottom:3px solid transparent;background:transparent;color:var(--ink-2);cursor:pointer;border-radius:0}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;align-items:start}
+@media (max-width:860px){.layout{grid-template-columns:1fr}}
+.main{display:flex;flex-direction:column;gap:14px;min-width:0}
+.plot{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px}
+canvas{display:block;width:100%;touch-action:none;cursor:crosshair}
+.legend{display:flex;gap:14px;flex-wrap:wrap;padding:8px 4px 0;font-size:.85rem;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:16px;height:12px;border-radius:2px;flex:none}
+.sw.ln{height:0;border-top:3px solid;border-radius:0;width:22px}
+.sw.dash{border-top-style:dashed}
+.sw.ramp{background:linear-gradient(90deg,var(--map0),var(--map1));border:1px solid var(--line);width:34px}
+.controls{display:flex;flex-direction:column;gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px}
+.row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:4px}
+label{font-weight:600;font-size:.9rem}
+.val{font-family:"JetBrains Mono",monospace;font-size:.85rem;color:var(--ink-2);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--in);margin:2px 0 8px}
+input[type=range]:focus-visible,button:focus-visible,input[type=checkbox]:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+button{font:inherit;font-weight:600;padding:6px 12px;border-radius:4px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+button.primary{background:var(--in);border-color:var(--in);color:#fff}
+button[disabled]{opacity:.45;cursor:not-allowed}
+.seg{display:flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.seg button{flex:1 1 auto;border:0;border-radius:0;background:transparent;font-size:.88rem;padding:6px 8px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.seg.wrap2 button{flex:1 1 45%}
+.hint{font-size:.82rem;color:var(--ink-2);margin:6px 0 0}
+.chk{display:flex;align-items:center;gap:8px;font-weight:600;font-size:.9rem;margin-top:6px}
+.m{font-family:"Source Serif 4",Georgia,serif;font-style:italic;font-size:1.02rem}
+.m sup,.m sub{font-style:normal;font-size:.72em}
+.m .up{font-style:normal}
+.eq{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline;font-size:1.12rem;margin:2px 0 12px;overflow-x:auto}
+.eq.small{font-size:.98rem;margin:0 0 8px}
+.t-sys{color:var(--sys)} .t-cv{color:var(--cv)} .t-out{color:var(--out)} .t-in{color:var(--in)} .t-conv{color:var(--conv)} .t-slug{color:var(--slug)}
+.bars{display:flex;flex-direction:column;gap:8px}
+.bar-row{display:grid;grid-template-columns:138px minmax(0,1fr) 112px;gap:10px;align-items:center}
+@media (max-width:520px){.bar-row{grid-template-columns:96px minmax(0,1fr) 84px;gap:6px}}
+.bar-row .bl small{display:block;font-family:"Source Sans 3",sans-serif;font-style:normal;font-size:.72rem;color:var(--ink-2)}
+.track{position:relative;height:18px;background:var(--grid);border-radius:2px}
+.track .zero{position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--ink-2)}
+.track .fill{position:absolute;top:2px;bottom:2px;background:var(--c);border-radius:1px}
+.bv{text-align:right;line-height:1.2}
+.bv b{display:block;font-family:"JetBrains Mono",monospace;font-weight:500;font-size:.9rem;font-variant-numeric:tabular-nums}
+.bv small{font-family:"JetBrains Mono",monospace;font-size:.72rem;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.units{font-size:.82rem;color:var(--ink-2);margin:10px 0 0}
+.notice{border-left:3px solid var(--ink);padding:2px 0 2px 12px;margin:0;max-width:75ch}
+.notice .eyebrow{display:block;margin-bottom:2px}
+.notice.ok{border-left-color:var(--ok)} .notice.bad{border-left-color:var(--bad)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0;font-size:.9rem}
+.kv dt{color:var(--ink-2)} .kv dd{margin:0;text-align:right;font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums;font-size:.88rem}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+th,td{padding:5px 4px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+td{font-family:"JetBrains Mono",monospace;font-size:.86rem}
+th:first-child,td:first-child{text-align:left;font-family:"Source Serif 4",Georgia,serif;font-style:italic;font-size:1rem}
+th{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);font-weight:600;font-family:"Source Sans 3",sans-serif;font-style:normal}
+.steps{display:flex;flex-direction:column;gap:10px}
+.step{display:none;border:1px solid var(--line);border-radius:6px;padding:12px 14px;background:var(--panel)}
+.step.on{display:block}
+.step .eyebrow{display:block;margin-bottom:4px}
+.step .math{font-family:"Source Serif 4",Georgia,serif;font-style:italic;font-size:1.08rem;margin:4px 0 6px;line-height:1.6}
+.step .math .up{font-style:normal}
+.step p{margin:4px 0 0;font-size:.92rem}
+.step.bad{border-color:var(--bad)} .step.ok{border-color:var(--ok)}
+.fb{font-size:.9rem;margin:8px 0 0;min-height:1.2em}
+.fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+.pill{display:inline-block;padding:1px 8px;border-radius:10px;font-size:.78rem;font-weight:600;color:#fff;background:var(--c)}
+.footnote{margin-top:22px;color:var(--ink-2);font-size:.85rem;max-width:80ch}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">CE 30460 · Chapter 6 Part 1 · Slides 16 to 23</div>
+  <h1>Streamfunction Lab</h1>
+  <p class="sub">For incompressible plane flow one scalar field ψ(x, y) carries the whole velocity field: <span class="m">u = ∂ψ/∂y, v = −∂ψ/∂x</span>. Its contours are the streamlines, and the difference in ψ between two streamlines is the flowrate passing between them.</p>
+
+  <div class="tabs" role="tablist" aria-label="Activities">
+    <button role="tab" id="tab-land" aria-selected="true" aria-controls="p-land">1 · ψ is a landscape</button>
+    <button role="tab" id="tab-flux" aria-selected="false" aria-controls="p-flux">2 · Δψ is a flowrate</button>
+    <button role="tab" id="tab-find" aria-selected="false" aria-controls="p-find">3 · Finding ψ from u and v</button>
+  </div>
+
+  <!-- ================= TAB 1 ================= -->
+  <section id="p-land" role="tabpanel" aria-labelledby="tab-land">
+    <div class="layout">
+      <div class="main">
+        <div class="plot">
+          <canvas id="c1" aria-label="Stream function shown as a shaded landscape with contour lines, a draggable probe showing the velocity vector and the gradient of psi"></canvas>
+          <div class="legend">
+            <span><i class="sw ramp"></i>ψ, low to high</span>
+            <span><i class="sw ln" style="border-color:var(--ink);opacity:.5"></i>ψ = constant (streamlines, equal Δψ)</span>
+            <span><i class="sw ln" style="border-color:var(--slug)"></i>streamline through the probe</span>
+            <span><i class="sw ln" style="border-color:var(--in)"></i>velocity V</span>
+            <span><i class="sw ln" style="border-color:var(--conv)"></i>∇ψ</span>
+            <span><i class="sw" style="background:var(--out);border-radius:50%;width:12px"></i>released particle</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="eq m" aria-label="Defining relations">
+            <span class="t-in">u</span><span class="up">=</span><span>∂ψ/∂y</span>
+            <span class="up" style="margin-left:10px"></span>
+            <span class="t-in">v</span><span class="up">=</span><span>−∂ψ/∂x</span>
+          </div>
+          <div class="eq m small" id="polar-eq" hidden>
+            <span class="t-in">v<sub>r</sub></span><span class="up">=</span><span>(1/r) ∂ψ/∂θ</span>
+            <span class="up" style="margin-left:10px"></span>
+            <span class="t-in">v<sub>θ</sub></span><span class="up">=</span><span>−∂ψ/∂r</span>
+          </div>
+          <table aria-label="Velocity at the probe, from psi and from the given field">
+            <thead><tr><th>at the probe</th><th>from <span class="nt">ψ</span> (numerical derivative)</th><th>from the given field</th></tr></thead>
+            <tbody>
+              <tr><td>u = ∂ψ/∂y</td><td id="u-psi">–</td><td id="u-fld">–</td></tr>
+              <tr><td>v = −∂ψ/∂x</td><td id="v-psi">–</td><td id="v-fld">–</td></tr>
+            </tbody>
+          </table>
+          <dl class="kv" style="margin-top:10px">
+            <dt>ψ at the probe</dt><dd id="psi-p">–</dd>
+            <dt>|V| and |∇ψ|</dt><dd id="mag-p">–</dd>
+            <dt>angle between V and ∇ψ</dt><dd id="ang-p">–</dd>
+            <dt>distance to the next streamline, Δψ / |V|</dt><dd id="gap-p">–</dd>
+            <dt>ψ carried by the particle</dt><dd id="psi-part">not released</dd>
+          </dl>
+          <p class="units">ψ in m²/s (a flowrate per unit depth). Velocity in m/s, lengths in m.</p>
+        </div>
+
+        <p class="notice" id="flow-note"></p>
+      </div>
+
+      <div class="controls">
+        <div class="card">
+          <span class="eyebrow">Flow field</span>
+          <div class="seg wrap2" id="seg-flow1" role="group" aria-label="Choose a flow field"></div>
+          <p class="hint" id="flow-eq1"></p>
+        </div>
+        <div class="card">
+          <div class="row"><label for="dpsi1">Contour interval Δψ</label><span class="val" id="dpsi1-v"></span></div>
+          <input type="range" id="dpsi1" min="0.1" max="1" step="0.05" value="0.5">
+          <label class="chk"><input type="checkbox" id="arrows1" checked> show velocity arrows</label>
+          <p class="hint">Every pair of neighbouring contours carries the same flowrate Δψ. Where they crowd together the fluid must move faster.</p>
+        </div>
+        <div class="card">
+          <span class="eyebrow">Probe and particle</span>
+          <div class="btns" style="margin-top:8px">
+            <button class="primary" id="release1">Release a particle</button>
+            <button id="reset1">Reset</button>
+          </div>
+          <p class="hint">Tap or drag on the figure to move the probe. A particle released there rides its own contour: ψ never changes along a streamline.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= TAB 2 ================= -->
+  <section id="p-flux" role="tabpanel" aria-labelledby="tab-flux" hidden>
+    <div class="layout">
+      <div class="main">
+        <div class="plot">
+          <canvas id="c2" aria-label="Two draggable points on streamlines with a bendable cut between them; the flow crossing the cut equals the difference in psi"></canvas>
+          <div class="legend">
+            <span><i class="sw ln" style="border-color:var(--slug)"></i>streamlines through A and B</span>
+            <span><i class="sw" style="background:var(--cv);opacity:.4"></i>stream tube between them</span>
+            <span><i class="sw ln" style="border-color:var(--ink)"></i>the cut from A to B</span>
+            <span><i class="sw ln" style="border-color:var(--in)"></i>V · n &gt; 0 (crossing to the right of A→B)</span>
+            <span><i class="sw ln" style="border-color:var(--out)"></i>V · n &lt; 0</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="eq m" aria-label="Flowrate across a cut equals the difference in psi">
+            <span class="t-cv">q</span><span class="up">=</span>
+            <span class="t-in">∫<sub>A</sub><sup>B</sup> V · n ds</span><span class="up">=</span>
+            <span class="t-slug">ψ<sub>B</sub> − ψ<sub>A</sub></span>
+          </div>
+          <div class="bars" id="bars2">
+            <div class="bar-row" style="--c:var(--slug)"><div class="bl m">ψ<sub>B</sub> − ψ<sub>A</sub><small>read off the two streamlines</small></div><div class="track"><i class="fill"></i><i class="zero"></i></div><div class="bv"><b id="dpsi-ab">–</b><small>m²/s</small></div></div>
+            <div class="bar-row" style="--c:var(--in)"><div class="bl m">∫ V · n ds<small>integrated along the cut</small></div><div class="track"><i class="fill"></i><i class="zero"></i></div><div class="bv"><b id="flux-ab">–</b><small>m²/s</small></div></div>
+          </div>
+          <dl class="kv" style="margin-top:12px">
+            <dt>ψ<sub>A</sub></dt><dd id="psi-a">–</dd>
+            <dt>ψ<sub>B</sub></dt><dd id="psi-b">–</dd>
+            <dt>length of the cut</dt><dd id="len-ab">–</dd>
+          </dl>
+          <p class="units">q is a volumetric flowrate per unit depth, m³/s per m. Multiply by the depth of the flow to get m³/s.</p>
+        </div>
+
+        <p class="notice"><span class="eyebrow">Why the shape of the cut does not matter</span>Along the cut, <span class="m">V · n ds = u dy − v dx = (∂ψ/∂y) dy + (∂ψ/∂x) dx = dψ</span>. The integrand is an exact differential, so only the endpoints count. Bend the cut, drag A along its own streamline, drag B along its own streamline: the flowrate between the two streamlines never changes.</p>
+      </div>
+
+      <div class="controls">
+        <div class="card">
+          <span class="eyebrow">Flow field</span>
+          <div class="seg wrap2" id="seg-flow2" role="group" aria-label="Choose a flow field"></div>
+          <p class="hint" id="flow-eq2"></p>
+        </div>
+        <div class="card">
+          <div class="row"><label for="bend2">Bend the cut</label><span class="val" id="bend2-v">0.00</span></div>
+          <input type="range" id="bend2" min="-1" max="1" step="0.02" value="0">
+          <div class="btns" style="margin-top:6px"><button id="reset2">Reset A and B</button><button id="swap2">Swap A and B</button></div>
+          <p class="hint">Drag A and B anywhere. The normal n points to the right as you walk from A to B, so q &gt; 0 means fluid crosses the cut from left to right. Swapping A and B flips the sign of both numbers.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= TAB 3 ================= -->
+  <section id="p-find" role="tabpanel" aria-labelledby="tab-find" hidden>
+    <div class="layout">
+      <div class="main">
+        <div class="plot">
+          <canvas id="c3" aria-label="Velocity field with a fluid blob to test continuity, then contours of the candidate and final stream functions"></canvas>
+          <div class="legend">
+            <span><i class="sw ln" style="border-color:var(--vec)"></i>given velocity field</span>
+            <span><i class="sw" style="background:var(--slug);opacity:.5"></i>fluid blob (continuity test)</span>
+            <span><i class="sw ln dash" style="border-color:var(--out)"></i>contours of ψ₀ = ∫u dy with g = 0</span>
+            <span><i class="sw ln" style="border-color:var(--in)"></i>contours of the final ψ</span>
+          </div>
+        </div>
+
+        <div class="steps" id="steps">
+          <div class="step on" id="st0">
+            <span class="eyebrow">Given velocity field</span>
+            <div class="math" id="st0-field"></div>
+            <p id="st0-note"></p>
+          </div>
+          <div class="step" id="st1">
+            <span class="eyebrow">Step 1 · Check continuity first</span>
+            <div class="math"><span class="up">∂u/∂x + ∂v/∂y = </span><span id="st1-terms"></span></div>
+            <p id="st1-text"></p>
+            <p id="st1-blob" class="val"></p>
+          </div>
+          <div class="step" id="st2">
+            <span class="eyebrow">Step 2 · Integrate <span class="nt">u</span> with respect to <span class="nt">y</span></span>
+            <div class="math" id="st2-math"></div>
+            <p id="st2-text"></p>
+          </div>
+          <div class="step" id="st3">
+            <span class="eyebrow">Step 3 · Differentiate with respect to <span class="nt">x</span> and match <span class="nt">−v</span></span>
+            <div class="math" id="st3-math"></div>
+            <p id="st3-text"></p>
+          </div>
+          <div class="step" id="st4">
+            <span class="eyebrow">Step 4 · Solve for <span class="nt">g(x)</span> and assemble <span class="nt">ψ</span></span>
+            <div class="math" id="st4-math"></div>
+            <p id="st4-text"></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="card">
+          <span class="eyebrow">Velocity field</span>
+          <div class="seg wrap2" id="seg-find" role="group" aria-label="Choose a velocity field"></div>
+        </div>
+        <div class="card">
+          <span class="eyebrow">Predict first</span>
+          <p style="margin:6px 0 8px;font-size:.92rem">Does a stream function exist for this field?</p>
+          <div class="btns"><button id="q-yes">Yes</button><button id="q-no">No</button></div>
+          <p class="fb" id="q-fb"></p>
+        </div>
+        <div class="card">
+          <span class="eyebrow">Work through the method</span>
+          <div class="btns" style="margin-top:8px">
+            <button class="primary" id="next3">Next step</button>
+            <button id="restart3">Start over</button>
+          </div>
+          <p class="hint" id="hint3">The blob in step 1 is a patch of fluid carried by the given field. Incompressible flow can stretch and shear it but cannot change its area.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <p class="footnote">Pairs with Chapter 6 Part 1, slides 16 to 23: the definition of ψ and why it exists (16, 17), what ψ = constant means (18), the four-step method and its continuity trap (19), uniform flow (20), the polar form (21), and problem 6.21 (23).</p>
+</div>
+<script>
+(function(){
+'use strict';
+const $=s=>document.querySelector(s);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const TAU=2*Math.PI;
+const fmt=(v,d=3)=>{const r=Number(v.toFixed(d));return (Object.is(r,-0)?0:r).toFixed(d);};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+/* ---------------- flow fields for tabs 1 and 2 ---------------- */
+const U=2, A=1, Bg=2, Msrc=6, Gam=6;
+const FLOWS=[
+ {id:'uniform',name:'Uniform flow',psi:(x,y)=>U*y,u:()=>U,v:()=>0,dom:[0,4,0,3],dpsi:0.5,
+  eq:'ψ = U y',field:'u = U = 2 m/s, v = 0',
+  note:'Horizontal streamlines, equally spaced. Equal spacing with equal Δψ means the speed is the same everywhere. This is the worked example on slide 20.'},
+ {id:'corner',name:'Corner flow',psi:(x,y)=>A*x*y,u:(x)=>A*x,v:(x,y)=>-A*y,dom:[0,3,0,3],dpsi:0.5,
+  eq:'ψ = A x y',field:'u = A x,  v = −A y   (A = 1 s⁻¹)',
+  note:'Fluid comes down from above and turns the corner. Both walls are the single streamline ψ = 0. The hyperbolas crowd together away from the corner, where the flow is fast, and spread apart near the stagnation point at the origin.'},
+ {id:'couette',name:'Shear flow',psi:(x,y)=>U*y*y/(2*Bg),u:(x,y)=>U*y/Bg,v:()=>0,dom:[0,4,0,2],dpsi:0.25,
+  eq:'ψ = U y² / 2b',field:'u = U y / b,  v = 0   (U = 2 m/s, b = 2 m)',
+  note:'The flow between the plates of problem 6.7. Every neighbouring pair of streamlines carries the same Δψ, so they bunch up near the fast-moving top plate and spread out near the fixed bottom plate. Straight streamlines, yet a non-uniform speed.'},
+ {id:'p621',name:'Problem 6.21',psi:(x,y)=>x*x*y-x*x/2,u:(x)=>x*x,v:(x,y)=>-2*x*y+x,dom:[0.25,2.5,-0.75,1.75],dpsi:0.5,
+  eq:'ψ = x² y − x² / 2',field:'u = x²,  v = −2xy + x',
+  note:'The stream function found at the end of the deck. Along y = ½ the flow is purely horizontal. Above that line fluid drifts down toward it, below it fluid drifts up, and u = x² grows downstream so the streamlines tighten to the right.'},
+ {id:'source',name:'Source',polar:true,psi:(x,y)=>Msrc/TAU*Math.atan2(y,x),u:(x,y)=>Msrc/TAU*x/(x*x+y*y),v:(x,y)=>Msrc/TAU*y/(x*x+y*y),dom:[0.3,3.3,-2,2],dpsi:0.25,
+  eq:'ψ = (m / 2π) θ',field:'v_r = m / 2πr,  v_θ = 0   (m = 6 m²/s)',
+  note:'A source sits at the origin, just left of the window. ψ depends on the angle θ only, so the streamlines are rays, and each wedge between rays carries the same flowrate. Going once around the source ψ increases by exactly m, the total flow leaving it.'},
+ {id:'vortex',name:'Free vortex',polar:true,psi:(x,y)=>-Gam/TAU*Math.log(Math.hypot(x,y)),u:(x,y)=>-Gam/TAU*y/(x*x+y*y),v:(x,y)=>Gam/TAU*x/(x*x+y*y),dom:[-2,2,-2,2],dpsi:0.25,mask:(x,y)=>Math.hypot(x,y)<0.3,
+  eq:'ψ = −(Γ / 2π) ln r',field:'v_r = 0,  v_θ = Γ / 2πr   (Γ = 6 m²/s)',
+  note:'Circular streamlines around a core (masked, r < 0.3 m). Speed falls as 1/r, so circles of equal Δψ are tightly packed near the core and far apart outside. Counterclockwise is positive, matching the sign convention for vorticity on slide 9.'}
+];
+
+/* numerical derivatives of psi */
+const H=1e-4;
+const dpsidy=(f,x,y)=>(f.psi(x,y+H)-f.psi(x,y-H))/(2*H);
+const dpsidx=(f,x,y)=>(f.psi(x+H,y)-f.psi(x-H,y))/(2*H);
+
+/* ---------------- view / canvas helpers ---------------- */
+function makeView(cv,dom){
+  const dpr=window.devicePixelRatio||1;
+  const cssW=cv.clientWidth||600;
+  const [x0,x1,y0,y1]=dom;
+  const padL=40,padR=12,padT=12,padB=30;
+  const plotW=Math.max(100,cssW-padL-padR);
+  const maxH=Math.max(260,Math.min(540,window.innerHeight*0.62));
+  const s=Math.min(plotW/(x1-x0), maxH/(y1-y0));
+  const pw=s*(x1-x0), ph=s*(y1-y0);
+  const cssH=ph+padT+padB;
+  cv.width=Math.round(cssW*dpr); cv.height=Math.round(cssH*dpr);
+  cv.style.height=cssH+'px';
+  const ox=padL+(plotW-pw)/2, oy=padT;
+  return {dpr,cssW,cssH,s,ox,oy,pw,ph,x0,x1,y0,y1,
+    X:x=>ox+(x-x0)*s, Y:y=>oy+(y1-y)*s, ix:px=>x0+(px-ox)/s, iy:py=>y1-(py-oy)/s};
+}
+function niceStep(range){ const raw=range/6; const p=Math.pow(10,Math.floor(Math.log10(raw))); const m=raw/p; return (m<1.5?1:m<3.5?2:m<7.5?5:10)*p; }
+function drawAxes(ctx,V){
+  ctx.save();
+  ctx.strokeStyle=css('--line'); ctx.lineWidth=1;
+  ctx.strokeRect(V.ox+0.5,V.oy+0.5,V.pw,V.ph);
+  ctx.fillStyle=css('--ink-2'); ctx.font='11px "JetBrains Mono",monospace';
+  const st=niceStep(Math.max(V.x1-V.x0,V.y1-V.y0));
+  ctx.textAlign='center'; ctx.textBaseline='top';
+  for(let x=Math.ceil(V.x0/st)*st;x<=V.x1+1e-9;x+=st){ const px=V.X(x); ctx.beginPath(); ctx.moveTo(px,V.oy+V.ph); ctx.lineTo(px,V.oy+V.ph+4); ctx.stroke(); ctx.fillText(fmt(x,1),px,V.oy+V.ph+6); }
+  ctx.textAlign='right'; ctx.textBaseline='middle';
+  for(let y=Math.ceil(V.y0/st)*st;y<=V.y1+1e-9;y+=st){ const py=V.Y(y); ctx.beginPath(); ctx.moveTo(V.ox,py); ctx.lineTo(V.ox-4,py); ctx.stroke(); ctx.fillText(fmt(y,1),V.ox-6,py); }
+  ctx.font='11px "Source Sans 3",sans-serif'; ctx.textAlign='right'; ctx.textBaseline='top';
+  ctx.fillText('x (m)',V.ox+V.pw,V.oy+V.ph+18);
+  ctx.textAlign='left'; ctx.textBaseline='bottom'; ctx.fillText('y (m)',V.ox+4,V.oy+V.ph-4);
+  ctx.restore();
+}
+function arrow(ctx,x0,y0,x1,y1,color,w,head){
+  const dx=x1-x0,dy=y1-y0,L=Math.hypot(dx,dy); if(L<0.5)return;
+  const ux=dx/L,uy=dy/L; head=Math.min(head,L*0.6);
+  ctx.save(); ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=w; ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1-ux*head*0.6,y1-uy*head*0.6); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x1-ux*head-uy*head*0.45,y1-uy*head+ux*head*0.45); ctx.lineTo(x1-ux*head+uy*head*0.45,y1-uy*head-ux*head*0.45); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+function hexToRgb(h){ h=h.replace('#',''); if(h.length===3)h=h.split('').map(c=>c+c).join(''); const n=parseInt(h,16); return [(n>>16)&255,(n>>8)&255,n&255]; }
+
+/* psi sampled on a pixel grid over the plot area (res css px per cell) */
+function buildField(flow,V,res){
+  const nx=Math.ceil(V.pw/res), ny=Math.ceil(V.ph/res);
+  const psi=new Float32Array(nx*ny), msk=new Uint8Array(nx*ny);
+  let mn=Infinity,mx=-Infinity;
+  for(let j=0;j<ny;j++){ const y=V.y1-(j+0.5)*res/V.s;
+    for(let i=0;i<nx;i++){ const x=V.x0+(i+0.5)*res/V.s; const k=j*nx+i;
+      if(flow.mask&&flow.mask(x,y)){msk[k]=1;continue;}
+      const p=flow.psi(x,y); psi[k]=p; if(p<mn)mn=p; if(p>mx)mx=p; } }
+  return {nx,ny,res,psi,msk,mn,mx};
+}
+function fieldImage(F){
+  const c0=hexToRgb(css('--map0')), c1=hexToRgb(css('--map1')), bg=hexToRgb(css('--grid'));
+  const oc=document.createElement('canvas'); oc.width=F.nx; oc.height=F.ny;
+  const octx=oc.getContext('2d'); const img=octx.createImageData(F.nx,F.ny); const d=img.data;
+  const rng=(F.mx-F.mn)||1;
+  for(let k=0;k<F.nx*F.ny;k++){ const o=k*4;
+    if(F.msk[k]){ d[o]=bg[0];d[o+1]=bg[1];d[o+2]=bg[2];d[o+3]=255; continue; }
+    const t=(F.psi[k]-F.mn)/rng;
+    d[o]=c0[0]+(c1[0]-c0[0])*t; d[o+1]=c0[1]+(c1[1]-c0[1])*t; d[o+2]=c0[2]+(c1[2]-c0[2])*t; d[o+3]=255; }
+  octx.putImageData(img,0,0); return oc;
+}
+function bandImage(F,lo,hi){
+  const c=hexToRgb(css('--cv'));
+  const oc=document.createElement('canvas'); oc.width=F.nx; oc.height=F.ny;
+  const octx=oc.getContext('2d'); const img=octx.createImageData(F.nx,F.ny); const d=img.data;
+  for(let k=0;k<F.nx*F.ny;k++){ if(F.msk[k])continue; const p=F.psi[k]; if(p>=lo&&p<=hi){ const o=k*4; d[o]=c[0];d[o+1]=c[1];d[o+2]=c[2];d[o+3]=95; } }
+  octx.putImageData(img,0,0); return oc;
+}
+/* marching squares: returns flat array of segment endpoints in grid units */
+function contourSegs(F,level){
+  const {nx,ny,psi,msk}=F; const out=[]; const jump=0.5*(F.mx-F.mn);
+  for(let j=0;j<ny-1;j++)for(let i=0;i<nx-1;i++){
+    const k=j*nx+i; if(msk[k]||msk[k+1]||msk[k+nx]||msk[k+nx+1])continue;
+    const a=psi[k]-level,b=psi[k+1]-level,c=psi[k+nx+1]-level,d=psi[k+nx]-level;
+    if(Math.max(a,b,c,d)-Math.min(a,b,c,d)>jump)continue;
+    const X=i+0.5,Y=j+0.5; const p=[];
+    if((a<0)!==(b<0))p.push(X+a/(a-b),Y);
+    if((b<0)!==(c<0))p.push(X+1,Y+b/(b-c));
+    if((c<0)!==(d<0))p.push(X+1-c/(c-d),Y+1);
+    if((d<0)!==(a<0))p.push(X,Y+1-d/(d-a));
+    if(p.length===4||p.length===8)for(const q of p)out.push(q);
+  }
+  return out;
+}
+function strokeSegs(ctx,V,F,segs,color,w,dash){
+  if(!segs.length)return;
+  ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=w; if(dash)ctx.setLineDash(dash); ctx.lineCap='round';
+  ctx.beginPath();
+  for(let i=0;i<segs.length;i+=4){ ctx.moveTo(V.ox+segs[i]*F.res,V.oy+segs[i+1]*F.res); ctx.lineTo(V.ox+segs[i+2]*F.res,V.oy+segs[i+3]*F.res); }
+  ctx.stroke(); ctx.restore();
+}
+function drawContours(ctx,V,F,dpsi,color,w){
+  const k0=Math.ceil(F.mn/dpsi), k1=Math.floor(F.mx/dpsi);
+  if(k1-k0>400)return;
+  for(let k=k0;k<=k1;k++) strokeSegs(ctx,V,F,contourSegs(F,k*dpsi),color,w);
+}
+/* velocity arrow grid; returns scale (px per m/s) used */
+function arrowScale(flow,V){
+  const n=16, step=V.pw/n; const sp=[];
+  for(let i=0;i<n;i++)for(let j=0;j<Math.round(V.ph/step);j++){ const x=V.ix(V.ox+(i+0.5)*step), y=V.iy(V.oy+(j+0.5)*step); if(flow.mask&&flow.mask(x,y))continue; sp.push(Math.hypot(flow.u(x,y),flow.v(x,y))); }
+  sp.sort((a,b)=>a-b); const p=sp[Math.floor(sp.length*0.85)]||1; return {step,p85:p,k:0.8*step/p};
+}
+function drawArrowGrid(ctx,flow,V,color){
+  const {step,k}=arrowScale(flow,V); const m=Math.round(V.ph/step);
+  for(let i=0;i<16;i++)for(let j=0;j<m;j++){ const px=V.ox+(i+0.5)*step, py=V.oy+(j+0.5)*step; const x=V.ix(px), y=V.iy(py); if(flow.mask&&flow.mask(x,y))continue;
+    const u=flow.u(x,y), v=flow.v(x,y); const sp=Math.hypot(u,v); if(sp<1e-9)continue; const L=Math.min(sp*k,step*0.95);
+    arrow(ctx,px-u/sp*L/2,py+v/sp*L/2,px+u/sp*L/2,py-v/sp*L/2,color,1.2,6); }
+}
+function rk4(flow,p,dt){
+  const f=(x,y)=>[flow.u(x,y),flow.v(x,y)];
+  const k1=f(p.x,p.y), k2=f(p.x+dt/2*k1[0],p.y+dt/2*k1[1]), k3=f(p.x+dt/2*k2[0],p.y+dt/2*k2[1]), k4=f(p.x+dt*k3[0],p.y+dt*k3[1]);
+  return {x:p.x+dt/6*(k1[0]+2*k2[0]+2*k3[0]+k4[0]), y:p.y+dt/6*(k1[1]+2*k2[1]+2*k3[1]+k4[1])};
+}
+function inDom(V,p,m=0){ return p.x>=V.x0-m&&p.x<=V.x1+m&&p.y>=V.y0-m&&p.y<=V.y1+m; }
+function dot(ctx,x,y,r,fill,stroke){ ctx.save(); ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.fillStyle=fill; ctx.fill(); if(stroke){ctx.lineWidth=2;ctx.strokeStyle=stroke;ctx.stroke();} ctx.restore(); }
+function labelBox(ctx,text,x,y,color){
+  ctx.save(); ctx.font='600 12px "Source Sans 3",sans-serif'; const w=ctx.measureText(text).width+10;
+  ctx.fillStyle=css('--panel'); ctx.globalAlpha=.9; ctx.fillRect(x-w/2,y-9,w,18); ctx.globalAlpha=1;
+  ctx.fillStyle=color; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(text,x,y); ctx.restore();
+}
+function segButtons(el,items,active,onpick){
+  el.innerHTML='';
+  items.forEach((it,i)=>{ const b=document.createElement('button'); b.type='button'; b.textContent=it.name; b.setAttribute('aria-pressed',String(i===active)); b.addEventListener('click',()=>{[...el.children].forEach(c=>c.setAttribute('aria-pressed','false')); b.setAttribute('aria-pressed','true'); onpick(i);}); el.appendChild(b); });
+}
+
+/* ================= TAB 1: psi is a landscape ================= */
+const T1={cv:$('#c1'),flow:FLOWS[1],dpsi:0.5,arrows:true,P:null,part:null,V:null,F:null,img:null,raf:0,last:0};
+T1.ctx=T1.cv.getContext('2d');
+function t1Setup(fi){
+  T1.flow=FLOWS[fi]; T1.dpsi=T1.flow.dpsi; $('#dpsi1').value=T1.dpsi; $('#dpsi1-v').textContent=fmt(T1.dpsi,2)+' m²/s';
+  const [x0,x1,y0,y1]=T1.flow.dom; T1.P={x:x0+0.55*(x1-x0),y:y0+0.6*(y1-y0)};
+  if(T1.flow.id==='vortex')T1.P={x:1.2,y:0.4};
+  if(T1.flow.id==='source')T1.P={x:1.6,y:0.7};
+  T1.part=null;
+  $('#polar-eq').hidden=!T1.flow.polar;
+  $('#flow-eq1').innerHTML='<span class="m">'+T1.flow.eq+'</span><br>'+T1.flow.field;
+  $('#flow-note').innerHTML='<span class="eyebrow">'+T1.flow.name+'</span>'+T1.flow.note;
+  t1Resize();
+}
+function t1Resize(){ if(T1.cv.clientWidth===0)return; T1.V=makeView(T1.cv,T1.flow.dom); T1.F=buildField(T1.flow,T1.V,2); T1.img=fieldImage(T1.F); t1Draw(); }
+function t1Draw(){
+  const {ctx,V,F,flow}=T1; if(!V)return;
+  ctx.setTransform(V.dpr,0,0,V.dpr,0,0); ctx.clearRect(0,0,V.cssW,V.cssH);
+  ctx.imageSmoothingEnabled=true; ctx.drawImage(T1.img,V.ox,V.oy,V.pw,V.ph);
+  ctx.save(); ctx.globalAlpha=.55; drawContours(ctx,V,F,T1.dpsi,css('--ink'),1); ctx.restore();
+  if(T1.arrows)drawArrowGrid(ctx,flow,V,css('--vec'));
+  drawAxes(ctx,V);
+  /* streamline through the probe */
+  const P=T1.P, psiP=flow.psi(P.x,P.y);
+  strokeSegs(ctx,V,F,contourSegs(F,psiP),css('--slug'),3);
+  /* particle trail */
+  if(T1.part){ const tr=T1.part.trail; if(tr.length>1){ ctx.save(); ctx.strokeStyle=css('--out'); ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(V.X(tr[0].x),V.Y(tr[0].y)); for(const q of tr)ctx.lineTo(V.X(q.x),V.Y(q.y)); ctx.stroke(); ctx.restore(); }
+    dot(ctx,V.X(T1.part.x),V.Y(T1.part.y),6,css('--out'),css('--panel')); }
+  /* vectors at the probe */
+  const u=flow.u(P.x,P.y), v=flow.v(P.x,P.y), gx=dpsidx(flow,P.x,P.y), gy=dpsidy(flow,P.x,P.y);
+  const {p85}=arrowScale(flow,V); const k=Math.min(V.pw,V.ph)*0.22/p85;
+  const px=V.X(P.x), py=V.Y(P.y);
+  const cap=Math.min(V.pw,V.ph)*0.45; const sp=Math.hypot(u,v), gm=Math.hypot(gx,gy); const L=Math.min(sp*k,cap); const Lg=Math.min(gm*k,cap);
+  if(sp>1e-9&&gm>1e-9){ const ex=u/sp, ey=-v/sp, fx=gx/gm, fy=-gy/gm;
+    arrow(ctx,px,py,px+ex*L,py+ey*L,css('--in'),3,11); arrow(ctx,px,py,px+fx*Lg,py+fy*Lg,css('--conv'),3,11);
+    /* right-angle mark */
+    const m=10; ctx.save(); ctx.strokeStyle=css('--ink-2'); ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(px+ex*m,py+ey*m); ctx.lineTo(px+ex*m+fx*m,py+ey*m+fy*m); ctx.lineTo(px+fx*m,py+fy*m); ctx.stroke(); ctx.restore();
+    labelBox(ctx,'V',px+ex*(L+14),py+ey*(L+14),css('--in'));
+    labelBox(ctx,'∇ψ',px+fx*(Lg+16),py+fy*(Lg+16),css('--conv')); }
+  dot(ctx,px,py,6,css('--panel'),css('--ink'));
+  labelBox(ctx,'ψ = '+fmt(psiP,2),px,py-20,css('--slug'));
+  /* readouts */
+  $('#u-psi').textContent=fmt(gy)+' m/s'; $('#u-fld').textContent=fmt(u)+' m/s';
+  $('#v-psi').textContent=fmt(-gx)+' m/s'; $('#v-fld').textContent=fmt(v)+' m/s';
+  $('#psi-p').textContent=fmt(psiP)+' m²/s';
+  $('#mag-p').textContent=fmt(sp)+' / '+fmt(gm)+' m/s';
+  const ang=sp>1e-9?Math.acos(clamp((u*gx+v*gy)/(sp*Math.hypot(gx,gy)),-1,1))*180/Math.PI:NaN;
+  $('#ang-p').textContent=isNaN(ang)?'–':fmt(ang,1)+'°';
+  $('#gap-p').textContent=sp>1e-9?fmt(T1.dpsi/sp)+' m':'–';
+  $('#psi-part').textContent=T1.part?fmt(flow.psi(T1.part.x,T1.part.y))+' m²/s (start '+fmt(T1.part.psi0)+')':'not released';
+}
+function t1Step(ts){
+  if(!T1.part){T1.raf=0;return;}
+  const dtReal=T1.last?Math.min(0.05,(ts-T1.last)/1000):0.016; T1.last=ts;
+  const {p85}=arrowScale(T1.flow,T1.V); const tscale=90/(T1.V.s*p85);
+  let dt=dtReal*tscale; const sp=Math.hypot(T1.flow.u(T1.part.x,T1.part.y),T1.flow.v(T1.part.x,T1.part.y));
+  const n=Math.max(1,Math.ceil(sp*dt*T1.V.s/2)); dt/=n;
+  for(let i=0;i<n;i++){ const q=rk4(T1.flow,T1.part,dt); T1.part.x=q.x; T1.part.y=q.y; }
+  T1.part.trail.push({x:T1.part.x,y:T1.part.y}); if(T1.part.trail.length>900)T1.part.trail.shift();
+  const alive=inDom(T1.V,T1.part,0.02)&&!(T1.flow.mask&&T1.flow.mask(T1.part.x,T1.part.y))&&sp>1e-4;
+  t1Draw();
+  if(alive)T1.raf=requestAnimationFrame(t1Step); else {T1.raf=0;}
+}
+$('#release1').addEventListener('click',()=>{ T1.part={x:T1.P.x,y:T1.P.y,trail:[{x:T1.P.x,y:T1.P.y}],psi0:T1.flow.psi(T1.P.x,T1.P.y)}; T1.last=0; if(!T1.raf)T1.raf=requestAnimationFrame(t1Step); });
+$('#reset1').addEventListener('click',()=>{ T1.part=null; t1Draw(); });
+$('#dpsi1').addEventListener('input',e=>{ T1.dpsi=+e.target.value; $('#dpsi1-v').textContent=fmt(T1.dpsi,2)+' m²/s'; t1Draw(); });
+$('#arrows1').addEventListener('change',e=>{ T1.arrows=e.target.checked; t1Draw(); });
+(function(){ let drag=false;
+  const move=e=>{ const r=T1.cv.getBoundingClientRect(); const x=clamp(T1.V.ix(e.clientX-r.left),T1.V.x0,T1.V.x1), y=clamp(T1.V.iy(e.clientY-r.top),T1.V.y0,T1.V.y1); if(T1.flow.mask&&T1.flow.mask(x,y))return; T1.P={x,y}; T1.part=null; t1Draw(); };
+  T1.cv.addEventListener('pointerdown',e=>{ drag=true; T1.cv.setPointerCapture(e.pointerId); move(e); });
+  T1.cv.addEventListener('pointermove',e=>{ if(drag)move(e); });
+  T1.cv.addEventListener('pointerup',()=>drag=false); T1.cv.addEventListener('pointercancel',()=>drag=false);
+})();
+segButtons($('#seg-flow1'),FLOWS,1,t1Setup);
+
+/* ================= TAB 2: delta psi is a flowrate ================= */
+const T2={cv:$('#c2'),flow:FLOWS[2],A:null,B:null,bend:0,V:null,F:null,img:null,band:null,bandKey:''};
+T2.ctx=T2.cv.getContext('2d');
+function t2Defaults(){ const [x0,x1,y0,y1]=T2.flow.dom; const w=x1-x0,h=y1-y0;
+  T2.A={x:x0+0.32*w,y:y0+0.3*h}; T2.B={x:x0+0.62*w,y:y0+0.72*h};
+  if(T2.flow.id==='vortex'){T2.A={x:0.6,y:0.3};T2.B={x:1.5,y:0.9};}
+  if(T2.flow.id==='source'){T2.A={x:1.4,y:-0.6};T2.B={x:1.8,y:0.8};}
+  if(T2.flow.id==='uniform'){T2.A={x:1.2,y:0.8};T2.B={x:2.6,y:2.0};} }
+function t2Setup(fi){ T2.flow=FLOWS[fi]; t2Defaults(); $('#flow-eq2').innerHTML='<span class="m">'+T2.flow.eq+'</span><br>'+T2.flow.field; t2Resize(); }
+function t2Resize(){ if(T2.cv.clientWidth===0)return; T2.V=makeView(T2.cv,T2.flow.dom); T2.F=buildField(T2.flow,T2.V,2); T2.img=fieldImage(T2.F); T2.bandKey=''; t2Draw(); }
+function cutPath(flow,A,B,bend){
+  const dx=B.x-A.x, dy=B.y-A.y, L=Math.hypot(dx,dy)||1e-9; const nx=-dy/L, ny=dx/L;
+  const C={x:(A.x+B.x)/2+bend*0.7*L*nx, y:(A.y+B.y)/2+bend*0.7*L*ny};
+  const N=800; let q=0, len=0; const pts=[A]; let prev=A;
+  for(let k=1;k<=N;k++){ const t=k/N, mt=1-t; const p={x:mt*mt*A.x+2*mt*t*C.x+t*t*B.x, y:mt*mt*A.y+2*mt*t*C.y+t*t*B.y};
+    const xm=(p.x+prev.x)/2, ym=(p.y+prev.y)/2; if(!(flow.mask&&flow.mask(xm,ym))) q+=flow.u(xm,ym)*(p.y-prev.y)-flow.v(xm,ym)*(p.x-prev.x);
+    len+=Math.hypot(p.x-prev.x,p.y-prev.y); pts.push(p); prev=p; }
+  return {q,len,pts};
+}
+function t2Draw(){
+  const {ctx,V,F,flow,A,B}=T2; if(!V)return;
+  ctx.setTransform(V.dpr,0,0,V.dpr,0,0); ctx.clearRect(0,0,V.cssW,V.cssH);
+  ctx.drawImage(T2.img,V.ox,V.oy,V.pw,V.ph);
+  ctx.save(); ctx.globalAlpha=.45; drawContours(ctx,V,F,flow.dpsi,css('--ink'),1); ctx.restore();
+  const pA=flow.psi(A.x,A.y), pB=flow.psi(B.x,B.y);
+  const lo=Math.min(pA,pB), hi=Math.max(pA,pB); const key=lo.toFixed(3)+'|'+hi.toFixed(3);
+  if(key!==T2.bandKey){ T2.band=bandImage(F,lo,hi); T2.bandKey=key; }
+  ctx.drawImage(T2.band,V.ox,V.oy,V.pw,V.ph);
+  drawArrowGrid(ctx,flow,V,css('--vec'));
+  drawAxes(ctx,V);
+  strokeSegs(ctx,V,F,contourSegs(F,pA),css('--slug'),3);
+  strokeSegs(ctx,V,F,contourSegs(F,pB),css('--slug'),3);
+  /* the cut */
+  const cut=cutPath(flow,A,B,T2.bend);
+  ctx.save(); ctx.strokeStyle=css('--ink'); ctx.lineWidth=2.5; ctx.beginPath(); cut.pts.forEach((p,i)=>i?ctx.lineTo(V.X(p.x),V.Y(p.y)):ctx.moveTo(V.X(p.x),V.Y(p.y))); ctx.stroke(); ctx.restore();
+  /* normal ticks: V.n along the cut */
+  const {p85}=arrowScale(flow,V); const k=Math.min(V.pw,V.ph)*0.12/p85;
+  const stepN=Math.max(1,Math.floor(cut.pts.length/14));
+  for(let i=stepN>>1;i<cut.pts.length-1;i+=stepN){ const p=cut.pts[i], pn=cut.pts[Math.min(i+1,cut.pts.length-1)], pp=cut.pts[Math.max(i-1,0)];
+    const tx=pn.x-pp.x, ty=pn.y-pp.y, tl=Math.hypot(tx,ty)||1e-9; const nx=ty/tl, ny=-tx/tl; /* right-hand normal */
+    if(flow.mask&&flow.mask(p.x,p.y))continue;
+    const vn=flow.u(p.x,p.y)*nx+flow.v(p.x,p.y)*ny; const L=Math.min(Math.abs(vn)*k,Math.min(V.pw,V.ph)*0.3); if(L<2)continue;
+    const sgn=Math.sign(vn); const px=V.X(p.x), py=V.Y(p.y);
+    arrow(ctx,px,py,px+sgn*nx*L,py-sgn*ny*L,sgn>0?css('--in'):css('--out'),2,7); }
+  /* points */
+  for(const [P,name,psi] of [[A,'A',pA],[B,'B',pB]]){ const px=V.X(P.x),py=V.Y(P.y); dot(ctx,px,py,7,css('--panel'),css('--ink')); labelBox(ctx,name+'   ψ = '+fmt(psi,2),px,py-20,css('--ink')); }
+  /* ledger */
+  const d=pB-pA, q=cut.q; const mx=Math.max(Math.abs(d),Math.abs(q),1e-9);
+  const rows=$('#bars2').querySelectorAll('.bar-row');
+  [[rows[0],d],[rows[1],q]].forEach(([row,val])=>{ const f=row.querySelector('.fill'); const frac=val/mx*0.48; if(frac>=0){f.style.left='50%';f.style.width=(frac*100)+'%';} else {f.style.left=(50+frac*100)+'%';f.style.width=(-frac*100)+'%';} });
+  $('#dpsi-ab').textContent=fmt(d); $('#flux-ab').textContent=fmt(q);
+  $('#psi-a').textContent=fmt(pA)+' m²/s'; $('#psi-b').textContent=fmt(pB)+' m²/s'; $('#len-ab').textContent=fmt(cut.len,2)+' m';
+}
+(function(){ let grab=null;
+  const pos=e=>{ const r=T2.cv.getBoundingClientRect(); return {px:e.clientX-r.left,py:e.clientY-r.top}; };
+  T2.cv.addEventListener('pointerdown',e=>{ const {px,py}=pos(e); let best=null,bd=28;
+    for(const [P,n] of [[T2.A,'A'],[T2.B,'B']]){ const d=Math.hypot(T2.V.X(P.x)-px,T2.V.Y(P.y)-py); if(d<bd){bd=d;best=n;} }
+    if(best){grab=best; T2.cv.setPointerCapture(e.pointerId);} });
+  T2.cv.addEventListener('pointermove',e=>{ if(!grab)return; const {px,py}=pos(e); const x=clamp(T2.V.ix(px),T2.V.x0,T2.V.x1), y=clamp(T2.V.iy(py),T2.V.y0,T2.V.y1); if(T2.flow.mask&&T2.flow.mask(x,y))return; T2[grab]={x,y}; t2Draw(); });
+  const up=()=>grab=null; T2.cv.addEventListener('pointerup',up); T2.cv.addEventListener('pointercancel',up);
+})();
+$('#bend2').addEventListener('input',e=>{ T2.bend=+e.target.value; $('#bend2-v').textContent=fmt(T2.bend,2); t2Draw(); });
+$('#reset2').addEventListener('click',()=>{ t2Defaults(); T2.bend=0; $('#bend2').value=0; $('#bend2-v').textContent='0.00'; t2Draw(); });
+$('#swap2').addEventListener('click',()=>{ const t=T2.A; T2.A=T2.B; T2.B=t; t2Draw(); });
+segButtons($('#seg-flow2'),FLOWS,2,t2Setup);
+
+/* ================= TAB 3: finding psi ================= */
+const FIND=[
+ {name:'Uniform',dom:[0,4,0,3],exists:true,dpsi:0.5,g0:true,blob:{x:1,y:1.5,T:0.6},
+  u:()=>U,v:()=>0,psi0:(x,y)=>U*y,psi:(x,y)=>U*y,
+  field:'u = U,  v = 0   <span class="up">(U = 2 m/s)</span>',
+  note:'The example on slide 20. A one-line field, but it exercises every step of the method.',
+  terms:'0 + 0 = 0',s1:'Continuity holds. The flow is incompressible and a stream function exists.',
+  s2:'ψ = ∫ u dy = ∫ U dy = U y + g(x)',s2t:'Integrating with respect to y leaves an unknown function of x only, not just a constant. That is what g(x) is for.',
+  s3:'∂ψ/∂x = g′(x)   <span class="up">and this must equal</span>   −v = 0,   <span class="up">so</span>   g′(x) = 0',s3t:'Here the first integral already captured everything. g(x) can only be a constant.',
+  s4:'g(x) = C.   <span class="up">Choosing</span> C = 0:   ψ = U y',s4t:'ψ = constant means y = constant: horizontal streamlines, equally spaced because u is the same everywhere. The dashed and solid contours coincide.'},
+ {name:'Corner flow',dom:[0,3,0,3],exists:true,dpsi:0.5,g0:true,blob:{x:0.9,y:1.6,T:0.6},
+  u:(x)=>A*x,v:(x,y)=>-A*y,psi0:(x,y)=>A*x*y,psi:(x,y)=>A*x*y,
+  field:'u = A x,  v = −A y   <span class="up">(A = 1 s⁻¹)</span>',
+  note:'Stagnation flow in a corner. The blob stretches in x and squeezes in y, but watch its area.',
+  terms:'A + (−A) = 0',s1:'Continuity holds: the stretching in x is exactly paid for by the squeezing in y. ψ exists.',
+  s2:'ψ = ∫ A x dy = A x y + g(x)',s2t:'x is held fixed during the y-integration, so A x comes out as a coefficient.',
+  s3:'∂ψ/∂x = A y + g′(x)   <span class="up">must equal</span>   −v = A y,   <span class="up">so</span>   g′(x) = 0',s3t:'Again g′ = 0. That is a feature of this field, not of the method: do not assume it.',
+  s4:'ψ = A x y',s4t:'The streamlines are the hyperbolas x y = constant, with both walls on ψ = 0.'},
+ {name:'Problem 6.21',dom:[0.25,2.5,-0.75,1.75],exists:true,dpsi:0.5,g0:false,blob:{x:0.8,y:0.1,T:0.22},
+  u:(x)=>x*x,v:(x,y)=>-2*x*y+x,psi0:(x,y)=>x*x*y,psi:(x,y)=>x*x*y-x*x/2,
+  field:'u = x²,  v = −2xy + x',
+  note:'Sample problem 2 from the deck. The sign in front of 2xy is doing all the work in step 1.',
+  terms:'2x + (−2x) = 0',s1:'Continuity holds for every x and y, so ψ exists. Move on.',
+  s2:'ψ = ∫ x² dy = x² y + g(x)',s2t:'The dashed contours show this candidate with g = 0. The arrows are not tangent to them: ψ₀ is not yet a stream function of this field.',
+  s3:'∂ψ/∂x = 2xy + g′(x)   <span class="up">must equal</span>   −v = 2xy − x,   <span class="up">so</span>   g′(x) = −x',s3t:'The 2xy terms cancel, as they must if ψ exists. What is left fixes g.',
+  s4:'g(x) = −x²/2 + C,   <span class="up">so</span>   ψ = x² y − x² / 2',s4t:'Now the arrows are tangent to every contour. Check: ∂ψ/∂y = x² = u and −∂ψ/∂x = −2xy + x = v. Along y = ½ the flow is horizontal, and the streamlines y = ½ + c/x² tighten downstream because u grows as x².'},
+ {name:'Rotated corner',dom:[-2,2,-2,2],exists:true,dpsi:0.5,g0:false,blob:{x:-0.9,y:0.9,T:0.6},
+  u:(x,y)=>y,v:(x)=>x,psi0:(x,y)=>y*y/2,psi:(x,y)=>(y*y-x*x)/2,
+  field:'u = y,  v = x',
+  note:'Looks nothing like corner flow, but it is the same hyperbolic pattern turned through 45°.',
+  terms:'0 + 0 = 0',s1:'Both partials vanish identically. ψ exists.',
+  s2:'ψ = ∫ y dy = y²/2 + g(x)',s2t:'The candidate with g = 0 has horizontal contours (dashed). The field clearly does not follow them, so g(x) must carry real information here.',
+  s3:'∂ψ/∂x = g′(x)   <span class="up">must equal</span>   −v = −x,   <span class="up">so</span>   g′(x) = −x',s3t:'',
+  s4:'g(x) = −x²/2,   <span class="up">so</span>   ψ = (y² − x²) / 2',s4t:'The streamlines y² − x² = constant are hyperbolas with the diagonals y = ±x as the ψ = 0 lines. Rotate the corner-flow picture by 45° and you have it.'},
+ {name:'The trap',dom:[0.25,2.5,-1,1],exists:false,dpsi:0.5,g0:false,blob:{x:0.8,y:0,T:0.22},
+  u:(x)=>x*x,v:(x,y)=>2*x*y,psi0:null,psi:null,
+  field:'u = x²,  v = 2xy',
+  note:'Almost problem 6.21, with one sign changed. Decide before you look at step 1.',
+  terms:'2x + 2x = 4x ≠ 0',s1:'Continuity fails everywhere except on x = 0. This field is not incompressible, so no stream function exists. Stop here: steps 2 to 4 would produce an expression, but it would not satisfy v = −∂ψ/∂x. Watch the blob: the flow is creating fluid.'}
+];
+const T3={cv:$('#c3'),fi:2,step:0,V:null,F0:null,F:null,blob:null,raf:0,t:0,last:0,predicted:null};
+T3.ctx=T3.cv.getContext('2d');
+const BLOB_N=56;
+function blobInit(){ const f=FIND[T3.fi]; const r=0.2; const pts=[]; for(let i=0;i<BLOB_N;i++){ const a=i/BLOB_N*TAU; pts.push({x:f.blob.x+r*Math.cos(a),y:f.blob.y+r*Math.sin(a)}); } T3.blob={pts,pts0:pts.map(p=>({...p})),area0:polyArea(pts),t:0,hold:0}; T3.last=0; }
+function polyArea(p){ let a=0; for(let i=0;i<p.length;i++){ const q=p[i], r=p[(i+1)%p.length]; a+=q.x*r.y-r.x*q.y; } return Math.abs(a)/2; }
+function t3Setup(fi){ T3.fi=fi; T3.step=0; T3.predicted=null; const f=FIND[fi];
+  $('#st0-field').innerHTML=f.field; $('#st0-note').textContent=f.note; $('#q-fb').textContent=''; $('#q-fb').className='fb';
+  $('#q-yes').disabled=false; $('#q-no').disabled=false;
+  t3Resize(); t3Reveal(); }
+function t3Resize(){ if(T3.cv.clientWidth===0)return; const f=FIND[T3.fi]; T3.V=makeView(T3.cv,f.dom);
+  const g=(fn)=>fn?buildField({psi:fn},T3.V,2):null; T3.F0=g(f.psi0); T3.F=g(f.psi); t3Draw(); }
+function t3Reveal(){ const f=FIND[T3.fi];
+  for(let i=1;i<=4;i++){ const el=$('#st'+i); el.classList.toggle('on',T3.step>=i&&(f.exists||i===1)); el.classList.remove('ok','bad'); }
+  $('#st1-terms').textContent=f.terms; $('#st1-text').textContent=f.s1; $('#st1').classList.add(f.exists?'ok':'bad');
+  if(f.exists){ $('#st2-math').innerHTML=f.s2; $('#st2-text').textContent=f.s2t; $('#st3-math').innerHTML=f.s3; $('#st3-text').textContent=f.s3t; $('#st4-math').innerHTML=f.s4; $('#st4-text').textContent=f.s4t; }
+  const done=f.exists?T3.step>=4:T3.step>=1; $('#next3').disabled=done; $('#next3').textContent=done?(f.exists?'Done: ψ found':'Stopped: no ψ'):(T3.step===0?'Step 1: check continuity':'Step '+(T3.step+1));
+  if(T3.step>=1){ if(!T3.blob)blobInit(); if(!T3.raf)T3.raf=requestAnimationFrame(t3Anim); } else { T3.blob=null; $('#st1-blob').textContent=''; }
+  t3Draw(); }
+function t3Draw(){ const {ctx,V}=T3; if(!V)return; const f=FIND[T3.fi];
+  ctx.setTransform(V.dpr,0,0,V.dpr,0,0); ctx.clearRect(0,0,V.cssW,V.cssH);
+  ctx.save(); ctx.fillStyle=css('--fluid'); ctx.fillRect(V.ox,V.oy,V.pw,V.ph); ctx.restore();
+  if(f.exists&&T3.step>=2&&T3.step<4&&T3.F0){ const k0=Math.ceil(T3.F0.mn/f.dpsi),k1=Math.floor(T3.F0.mx/f.dpsi); for(let k=k0;k<=k1;k++)strokeSegs(ctx,V,T3.F0,contourSegs(T3.F0,k*f.dpsi),css('--out'),1.6,[6,5]); }
+  if(f.exists&&T3.step>=4&&T3.F){ drawContours(ctx,V,T3.F,f.dpsi,css('--in'),1.8); }
+  drawArrowGrid(ctx,f,V,T3.step>=4?css('--ink-2'):css('--vec'));
+  if(T3.blob){ const b=T3.blob;
+    ctx.save(); ctx.setLineDash([4,4]); ctx.strokeStyle=css('--ink-2'); ctx.lineWidth=1; ctx.beginPath(); b.pts0.forEach((p,i)=>i?ctx.lineTo(V.X(p.x),V.Y(p.y)):ctx.moveTo(V.X(p.x),V.Y(p.y))); ctx.closePath(); ctx.stroke(); ctx.restore();
+    ctx.save(); ctx.fillStyle=css('--slug'); ctx.globalAlpha=.5; ctx.beginPath(); b.pts.forEach((p,i)=>i?ctx.lineTo(V.X(p.x),V.Y(p.y)):ctx.moveTo(V.X(p.x),V.Y(p.y))); ctx.closePath(); ctx.fill(); ctx.globalAlpha=1; ctx.strokeStyle=css('--slug'); ctx.lineWidth=2; ctx.stroke(); ctx.restore(); }
+  drawAxes(ctx,V); }
+function t3Anim(ts){ if(!T3.blob||T3.step<1){T3.raf=0;return;} const f=FIND[T3.fi]; const b=T3.blob;
+  const dtReal=T3.last?Math.min(0.05,(ts-T3.last)/1000):0.016; T3.last=ts;
+  if(b.t<f.blob.T){ const dt=Math.min(f.blob.T-b.t,dtReal*f.blob.T/2.4); for(let i=0;i<b.pts.length;i++)b.pts[i]=rk4(f,b.pts[i],dt); b.t+=dt; }
+  else { b.hold+=dtReal; if(b.hold>1.6){ blobInit(); } }
+  const ratio=polyArea(b.pts)/b.area0;
+  $('#st1-blob').textContent='blob area ratio after '+fmt(b.t,2)+' s:  '+fmt(ratio,3)+(f.exists?'  (area preserved)':'  (fluid being created)');
+  t3Draw(); T3.raf=requestAnimationFrame(t3Anim); }
+$('#next3').addEventListener('click',()=>{ const f=FIND[T3.fi]; const max=f.exists?4:1; if(T3.step<max){T3.step++; t3Reveal();} });
+$('#restart3').addEventListener('click',()=>{ T3.step=0; T3.blob=null; t3Reveal(); });
+function predict(ans){ const f=FIND[T3.fi]; const fb=$('#q-fb'); const right=ans===f.exists; fb.className='fb '+(right?'ok':'bad');
+  fb.textContent=right?'Correct. Step 1 shows why.':(f.exists?'Not quite: check ∂u/∂x + ∂v/∂y before deciding. It vanishes here.':'Not quite: ∂u/∂x + ∂v/∂y = 4x here, so the flow is not incompressible and no ψ exists.'); }
+$('#q-yes').addEventListener('click',()=>predict(true)); $('#q-no').addEventListener('click',()=>predict(false));
+segButtons($('#seg-find'),FIND,2,t3Setup);
+
+/* ================= tabs, resize, theme ================= */
+const tabs=[['tab-land','p-land',()=>t1Resize()],['tab-flux','p-flux',()=>t2Resize()],['tab-find','p-find',()=>t3Resize()]];
+tabs.forEach(([t,p,fn])=>{ document.getElementById(t).addEventListener('click',()=>{ tabs.forEach(([tt,pp])=>{ document.getElementById(tt).setAttribute('aria-selected',String(tt===t)); document.getElementById(pp).hidden=pp!==p; }); fn(); }); });
+let rto=0; const onResize=()=>{ clearTimeout(rto); rto=setTimeout(()=>{ t1Resize(); t2Resize(); t3Resize(); },60); };
+window.addEventListener('resize',onResize);
+if(window.matchMedia){ const mq=window.matchMedia('(prefers-color-scheme: dark)'); (mq.addEventListener?mq.addEventListener('change',onResize):mq.addListener(onResize)); }
+document.fonts&&document.fonts.ready.then(()=>{t1Draw();t2Draw();t3Draw();});
+t1Setup(1); t2Setup(2); t3Setup(2);
+})();
+</script>
+</body>
+</html>
